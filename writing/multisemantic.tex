@@ -1,0 +1,470 @@
+% File tacl2018v2.tex
+% Sep 20, 2018
+
+% The English content of this file was modified from various *ACL instructions
+% by Lillian Lee and Kristina Toutanova
+%
+% LaTeXery is mostly all adapted from acl2018.sty.
+
+\documentclass[11pt,a4paper,acceptedWithA]{article}
+\usepackage{times,latexsym}
+\usepackage{url}
+\usepackage[T1]{fontenc}
+\usepackage{todonotes}
+\usepackage{mathpartir}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+
+%% Package options:
+%% Short version: "hyperref" and "submission" are the defaults.
+%% More verbose version:
+%% Most compact command to produce a submission version with hyperref enabled
+%%    \usepackage[]{tacl2018v2}
+%% Most compact command to produce a "camera-ready" version
+%%    \usepackage[acceptedWithA]{tacl2018v2}
+%% Most compact command to produce a double-spaced copy-editor's version
+%%    \usepackage[acceptedWithA,copyedit]{tacl2018v2}
+%
+%% If you need to disable hyperref in any of the above settings (see Section
+%% "LaTeX files") in the TACL instructions), add ",nohyperref" in the square
+%% brackets. (The comma is a delimiter in case there are multiple options specified.)
+
+\usepackage[]{tacl2018v2}
+
+
+
+
+%%%% Material in this block is specific to generating TACL instructions
+\usepackage{xspace,mfirstuc,tabulary}
+\newcommand{\dateOfLastUpdate}{Sept. 20, 2018}
+\newcommand{\styleFileVersion}{tacl2018v2}
+
+\newcommand{\ex}[1]{{\sf #1}}
+
+\newif\iftaclinstructions
+\taclinstructionsfalse % AUTHORS: do NOT set this to true
+\iftaclinstructions
+\renewcommand{\confidential}{}
+\renewcommand{\anonsubtext}{(No author info supplied here, for consistency with
+TACL-submission anonymization requirements)}
+\newcommand{\instr}
+\fi
+
+%
+\iftaclpubformat % this "if" is set by the choice of options
+\newcommand{\taclpaper}{final version\xspace}
+\newcommand{\taclpapers}{final versions\xspace}
+\newcommand{\Taclpaper}{Final version\xspace}
+\newcommand{\Taclpapers}{Final versions\xspace}
+\newcommand{\TaclPapers}{Final Versions\xspace}
+\else
+\newcommand{\taclpaper}{submission\xspace}
+\newcommand{\taclpapers}{{\taclpaper}s\xspace}
+\newcommand{\Taclpaper}{Submission\xspace}
+\newcommand{\Taclpapers}{{\Taclpaper}s\xspace}
+\newcommand{\TaclPapers}{Submissions\xspace}
+\fi
+
+%%%% End TACL-instructions-specific macro block
+%%%%
+
+\title{Multi-Targeted Categorial Grammar}
+
+
+% Author information does not appear in the pdf unless the "acceptedWithA" option is given
+% See tacl2018v2.sty for other ways to format author information
+\author{
+  Colin S.\ Gordon\\
+  Department of Computer Science, Drexel University\\
+  Philadelphia, PA, USA\\
+  {\sf csgordon@drexel.edu} \\
+}
+\newcommand{\grantno}{CCF-2220991\xspace}
+\newcommand{\funder}{the National Science Foundation\xspace}
+\newcommand{\Funder}{The National Science Foundation\xspace}
+% Not really supposed to to this, but it's way easier to see page count on overleaf
+\pagestyle{plain}
+\date{}
+\newcommand{\ha}{\textsc{HA}\xspace}
+\newcommand{\has}{\textsc{HA}s\xspace}
+\newcommand{\ba}{\textsc{BA}\xspace}
+\newcommand{\bas}{\textsc{BA}s\xspace}
+\newcommand{\ccg}{\textsc{CCG}\xspace}
+\newcommand{\ccgs}{\textsc{CCG}s\xspace}
+
+\begin{document}
+\maketitle
+\begin{abstract}
+Many variants of categorial grammar exist with support for semantic parsing. While the standard presentation of categorial grammar typically targets a typed lambda calculus with two base types (the type of individuals or entities, and the type of truth values), many other one-off variations exist targeting other types of lambda calculi.
+
+This paper demonstrates that the underlying requirements for semantic parsing to work for a given target calculus can be concisely summarized and abstracted by the established notion of a \emph{Heyting Algebra} from logic, which captures a common abstraction of semantics for truth, coordination, and conditionals. This observation itself is classic; this paper contributes evidence that it is also of practical value.
+We demonstrate that this kind of abstraction allows structuring the grammar and lexicon for a categorial grammar in such a way that many parts are reusable across multiple different target domains, allowing for example a single definition of ``and'' to be interpreted correctly across multiple target domains.
+We show this kind of factorization is \emph{useful}, by giving lexicons for semantic parsing into simply-typed two-sorted lambda calculi, dependently typed lambda calculi, temporal logic, and predicates over times and worlds, where most of the lexicon is reused across all intended targets of semantic parsing.
+\end{abstract}
+
+\todo[inline]{remove acceptedWithA and anonymize funding before submission}
+
+\section{Introduction}
+A classic question in formal semantics is that of what the proper target logic for representing semantics should be. Many widely varying logics have been studied, from the simply typed lambda calculus that is the focus of most work derived from Montague~\cite{montague1970universal,montagueEFL70,montaguePTQ73}, through the addition of various modalities~\cite{montague1972pragmatics,van1977tense}, up through explorations into dependently-typed lambda calculi~\cite{chatzikyriakidis2017modern,chatz2014nlcoq,bekki14dts,bekki2012LIRA,sundholm1986proof,ranta1991intuitionistic,ranta1994ttg} and temporal logics~\cite{nelken1996automatic,harris2015generating,dzifcak2009and}.
+It was long ago noticed by \citet{lambek1988categorial} that the common denominator across all of these logics was essentially that they were objects in some variety of topos~\cite{fourman1979sheaves} (a category-theoretic model of logic), or in more familiar terms a typed lambda calculus using a form of Heyting Algebra (\textsc{HA})~\cite{gabbaysemantical} to represent truth values --- an algebraic characterization of logical operations which abstracts over the common features of most logics (conjunction, disjunction, falsity, trivial truth, and implication) in a way that is agnostic to whether a logic is classical or intuitionistic, propositional or higher-order, or other questions. 
+
+However, Lambek's argument was primarily philosophical.  Here we advance the case that this is not only technically feasible, but practical and useful.
+In particular, we highlight that a common model of the syntax-semantics interface (a variant of categorial grammar) can be made independent by making the rules and parts of the lexicon \emph{parametric} in a choice of underlying Heyting Algebra.
+Combining this with the notion of a Heyting Algebra homomorphism (an embedding of one \textsc{HA} into another), it becomes possible to build a compact lexicon with built-in transformations of semantics given in one \ha into others.
+
+We outline the general strategy in Section \ref{sec:multitarget}, in connection with a generalized Combinatory Categorial Grammar (\ccg)~\cite{steedman-ccg:1987,Steedman:2001,steedman2012taking}. Section \ref{sec:algebras} surveys a range of linguistically-relevant Heyting Algebras, and Section \ref{sec:eval} puts these and morphisms between them to use translating English into a range of related logics.
+Our focus in this paper is on model theoretic semantics, but later sections elaborate on the relevance of our results to current work on learning semantic parsers.
+
+\begin{figure*}[h!]
+\begin{mathpar}
+\mathsf{Cat} ::= \mathsf{BaseCategory} \mid \mathsf{Cat}\setminus_m\mathsf{Cat} \mid \mathsf{Cat}/_m\mathsf{Cat} \\
+\Gamma,\Delta \in \mathsf{List}(\mathsf{Word})\quad
+X,Y\in\mathsf{Cat}\quad
+f,a,g\in\lambda_H\quad
+w\in\mathsf{Word}\quad
+m \in \{\star, \diamond, \times, \cdot\}\\
+\fbox{$\Gamma\vdash X \Rightarrow_H a$} \and
+\inferrule*[right=>]{
+    \Gamma\vdash X/_\star Y \Rightarrow_H f\\
+    \Delta\vdash Y \Rightarrow_H a
+}{
+    \Gamma\Delta:X\Rightarrow_H f~a
+}
+\and
+\inferrule*[right=<]{
+    \Delta\vdash Y \Rightarrow_H a\\
+    \Gamma\vdash X\setminus_\star Y \Rightarrow_H f
+}{
+    \Delta\Gamma:X\Rightarrow_H f~a
+}
+\and
+\inferrule*[right=>B]{
+    \Gamma\vdash X/_\diamond Y \Rightarrow_H f\\
+    \Delta\vdash Y/_\diamond Z \Rightarrow_H g\\
+}{
+    \Gamma\Delta\vdash X/_\diamond Z \Rightarrow_H f\circ g
+}
+\and
+\inferrule*[right=<B]{
+    \Delta\vdash Y\setminus_\diamond Z \Rightarrow_H g\\
+    \Gamma\vdash X\setminus_\diamond Y \Rightarrow_H f\\
+}{
+    \Delta\Gamma\vdash X\setminus_\diamond Z \Rightarrow_H f\circ g
+}
+\and
+\inferrule*[right=>B${}_\times$]{
+    \Gamma\vdash X/_\times Y \Rightarrow_H f\\
+    \Delta\vdash Y\setminus_\times Z \Rightarrow_H g
+}{
+    \Gamma\Delta\vdash X\setminus_\times Z \Rightarrow_H f\circ g
+}
+\and
+\inferrule*[right=<B${}_\times$]{
+    \Delta\vdash Y/_\times Z \Rightarrow_H g\\
+    \Gamma\vdash X\setminus_\times Y \Rightarrow_H f
+}{
+    \Delta\Gamma\vdash X/_\times Z \Rightarrow_H f\circ g
+}
+\and
+%\inferrule*[right=Promote]{
+%    \Gamma\vdash C \Rightarrow_H a\\
+%    C <: C'
+%}{
+%    \Gamma\vdash C' \Rightarrow_H a
+%}
+%\quad
+\inferrule*[right=PromL]{
+    m = \cdot \vee m' = \star
+}{
+    X\setminus_m Y <: X\setminus_m' Y
+}
+\and
+\inferrule*[right=PromR]{
+    m = \cdot \vee m' = \ast
+}{
+    X/_m Y <: X/_m' Y
+}
+\and
+\inferrule*[right=Lexicon]{
+    (w,C,H,a)\in\mathsf{Lexicon}
+}{
+    w \vdash C \Rightarrow_H a
+}
+\end{mathpar}
+\caption{Multi-modal CCG rules~\cite{baldridge2002lexically,baldridge2003multi} including semantics and explicit rules for promoting modalities.
+\todo[inline]{missing type raising}
+}
+\label{fig:multiccg}
+\end{figure*}
+
+\begin{figure*}
+\begin{mathpar}
+\inferrule*[right=Morphism]{
+    \Gamma \vdash C \Rightarrow_{H} a\\
+    f:H \leadsto H'
+}{
+    \Gamma \vdash C \Rightarrow_{H'} \mathsf{embed}(C,H,H',f,a)
+}
+\end{mathpar}
+\begin{eqnarray*}
+\mathsf{embed}^{H'}_H(C\in\mathsf{Cat},a\in\lfloor{C}\rfloor_H) &\in& \lfloor C\rfloor_H'\\
+\mathsf{embed}^{H'}_{H}(C,a) & =& a~\textrm{if $C$ is non-truth-functional (e.g., individuals)}\\
+\mathsf{embed}^{H'}_{H}(S,a) & =& \mathsf{map}~a\\
+\mathsf{embed}^{H'}_{H}(ADJ,a) & =& \mathsf{map}\circ a\\
+\mathsf{embed}^{H'}_{H}(C / C',a) &=& \lambda x\ldotp \mathsf{embed}(C,H,H',f,a)\ldots
+\end{eqnarray*}
+\todo[inline,color=teal]{how do we handle contravariant arguments? If C' is non-truth-functional, then there's no issue. If C' is truth-functional, then could get weird if the semantics in $H$ make some $H$-specific use of the C'. But this \emph{should} be something we can work around: if the use is $H$-specific, then that must be one of two kinds of dependency. One option is that its result type is $H$ but the arguments are not truth-functional, in which case we can just apply the morphism to the semantics and get an $H'$. The other possibility is that it uses an argument of type $H$. In general that would have to be one of the operations preserved by the morphism. But what if the semantics are some \emph{other} operation, itself defined in terms of those things? The only way to automatically translate that is to deconstruct the lambda term, which I'm trying to avoid. I guess maybe there's also the question of an additional operation defined on $H$ in terms of $H$ itself, but not necessarily a \ha operation. In type theory I'm inclined to think about constructors of the \ha.... the constructors themselves don't have to be preserved by morphisms (that wouldn't make sense) but there must be a corresponding element of $H'$... but that's hard to scope out in general. (These are suggesting restrictions on applying the morphism rule, but unpleasantly they're in terms of semantic structure rather than grammatical type.... maybe I could find a conservative restriction on grammatical type to rule out these tricky cases? Virtually anything would allow the cases I care about most, but maybe not the nice connection to Carpenter-style coordinator analysis.
+}
+\caption{\ldots\todo[inline]{side by side with semantic interp?}
+\todo[inline]{note we're assuming a single lambda calculus with a type of entities and a variety of heyting algebra types}
+\todo[inline]{coherence goal: prove that every semantics in $H'$ using morphism rule anywhere can be obtained by first getting a semantics in $H$ and them embedding once at the end}
+\todo[inline]{still need to handle polymorphic lexicon entries}
+}
+\label{fig:my_label}
+\end{figure*}
+
+\section{Multi-Targeted Categorial Grammar}
+\label{sec:multitarget}
+
+As mentioned in the introduction, the idea that most ideas from linguistic semantics function with any \ha is an old one~\cite{lambek1988categorial}.
+This section gives, to the best of our knowledge, the first \emph{formal} articulation of this idea by parameterizing a categorial grammar in the style of \cite{steedman2012taking} over a choice of underlying \ha. Additionally we extend the system with a way to relate derivations targeting different but related logics.
+
+Figure \ref{fig:multiccg} formalizes a variant of Steedman and Baldridge's multimodal \ccg~\cite{Baldridge:2003:MCC:1067807.1067836,baldridge2002lexically,steedman2012taking} that is parameterized over a choice $H$ of a specific \ha.
+It is mostly a more complete formalization of the \ccg given by \citet{steedman2012taking}.  We will briefly note how this differs from more classic variants of \ccg and other branches of the Categorial Grammar family tree, before tackling the unique aspects.
+Combinatory Categorial Grammars (\ccgs) are a variant of categorial grammar which draws inspiration more heavily from combinatory logic rather than substructural logic, most evident in the $\mathsf{B}$ rules for composition, which (1) are primitive, rather than derived as in most Lambek calculi; and (2) allow crossed composition (and did so before it was evident how to support this in type-logical Categorial Grammars~\cite{steedman-ccg:1987}).
+Historically, \ccg's slash types lacked the subscripts present in this form, and so \ccg's crossed composition rules $>\mathsf{B}x$ and $<\mathsf{B}x$ had to be restricted outside the formal system to only apply to certain linguistic categories, which varied across surface languages (e.g., English~\cite{hockenmaier2007ccgbank} vs. German~\cite{hockenmaier2006creating} vs. Hindi~\cite{ambati2018hindi}).
+Multi-modal \ccg~\cite{baldridge2002lexically,Baldridge:2003:MCC:1067807.1067836} borrowed insights from type-logical grammar~\todo{cite!} that use modalities ($m$ in the figure) on slash types to control application of rules like this which control long-distance and crossed dependencies.
+Each modality corresponds to the presence of absence of one of two reordering permissions on a category, leading to a notion of subsumption $<:$ as it is always permissible to treat a category which may take a long distance dependency or crossed dependency as \emph{not} doing so.\todo{explain the 4 modalities specifically}
+
+%\begin{figure}
+%\[
+%\begin{array}{rcl}
+%\llbracket S\rrbracket &=& t~\textrm{i.e., \textsf{bool}}\\
+%\llbracket X\setminus_m Y\rrbracket &=& \llbracket Y\rrbracket \rightarrow \llbracket X\rrbracket\\
+%\llbracket X/_m Y\rrbracket &=& \llbracket Y\rrbracket \rightarrow \llbracket X\rrbracket
+%\end{array}
+%\]
+%\caption{Traditional semantic types}
+%\end{figure}
+
+We have augmented this system in three key ways.
+First, we have parameterized the judgments by a choice $H$ of \ha. This formalizes Lambek's intuition and the fact that the standard rules for multi-modal \ccg are in fact independent of a specific target logic --- this is the underlying formal reason that \ccgs have been used to produce semantics in so many different logics. We have not shown the details of mapping from grammatical categories to types in the underlying lambda calculus with $H$, which is mostly unchanged from standard \ccg presentations (the modalities on slash types play no role in the semantics), with the exception that base categories involving notions of truth target $H$, which must be a type in this lambda calculus. So for example, a sentence type $S$ would map to $H$, while (in simple semantics) an adjective's semantics would be $e\rightarrow H$ (i.e., an $H$-predicate on entities).
+
+Second, we have formally stated the lexicon lookup. This is a small but critical formalization step omitted as obvious in most presentations of categorial grammars, but necessary to make our final step precise. Note that the lexicon may contain entries from more Heyting Algebras than the one being drawn upon in the \textsc{Lexicon} rule, which stipulates that an entry is found for the correct \ha.
+Finally, we have added the last rule, \textsc{Morphism}, which articulates a \emph{sharing} principle across logics. To fully explain it, we must take a detour through algebraic presentations of logic.
+
+
+
+
+\subsection{Algebraic Logic}
+Algebraic logic is the study of presentations of logics by means of algebras (in the sense of \emph{universal} or \emph{abstract} algebra) that capture the structure of formulas as an algebraic structure, and capture logical deduction by means of equational laws relating the construction of different formulas.
+
+The best-known of these structures are the \emph{Boolean Algebras} (\bas), which capture classical propositional logic. A set $B$ is an instance of a Boolean Algebra if there are distinguished elements $\top\in B$ and $\bot\in B$, binary operations $\vee$ and $\land$, and a unary operation $\neg$ on $B$ satisfying the expected laws of Boolean logic (e.g., associativity and commutativity of conjunction and disjunction, distributivity of conjunction over disjunction, $\neg\neg x=x$, $\neg\top=\bot$, etc.).
+The classic discrete mathematics or introductory logic exercise of defining implication in terms of negation and disjunction ($x\rightarrow y\equiv \neg x\vee y$), and proving that it has the expected properties implicitly relies on the notion of a \ba.
+
+Heyting Algebras generalize Boolean Algebras slightly to account for logics such as intuitionistic logics, which are weaker than classical logic in the sense that certain laws involving negation do not hold, and therefore implication cannot be derived, but must be primitive.
+In particular, a set $H$ is a Heyting Algebra given:
+\begin{eqnarray*}
+\bot,\top &\mathrel{:}& B\\
+\land,\vee,\rightarrow &\mathrel{:}& B\times B \mapsto B
+\end{eqnarray*}
+such that $H$ is a distributive lattice bounded by least element $\bot$ and greatest element $\top$, such lattice ordering (deriving $x\le y\equiv x\vee y=y$) models logical implication, and for all $a$, $x$, and $b$, $a\land x\le b \Leftrightarrow x\le a\rightarrow b$ (i.e., $a\rightarrow b$ is the greatest element that, when conjoined with $a$, implies $b$). In Heyting Algebras, negation is derived from implication: $\neg x\equiv x\rightarrow\bot$.
+Section \ref{sec:algebras} surveys a number of concrete Heyting Algebras, but readers comfortable with Boolean Algebras may rest assured that every \ba is an \ha (by defining implication in terms of negation), and the ideas we explore in the rest of the paper work perfectly well with Boolean Algebras as well. Heyting Algebras simply offer a slightly more general notion which allows our ideas to work for more logics, including those in our implementation.
+
+\todo[inline]{audit paper for $\rightarrow$ vs $\mapsto$ in different object vs meta contexts, and also }
+
+\subsection{Homomorphisms}
+The final bit of algebra we require to explain our approach is the notion of a \emph{homomorphism} of algebras: a structure-preserving (equation-preserving) map (function) between two algebras of the same kind.
+A \emph{Heyting Algebra homomorphism} from a \ha $\mathcal{H}$ to a \ha $\mathcal{J}$ is a function $f:\mathcal{H}\rightarrow\mathcal{J}$ which preserves all equational laws. For example, for every $x,y,z\in\mathcal{H}$, $f(x\land y)=f(x)\land f(y)$\todo{not actually a law}, $f(x\land y)=f(y\land x)$, etc. Because the lattice structure modeling logical implication is expressed via equations preserved by such a homomorphism, this embedding preserves logical implication (order), and is truly an embedding of one algebraic logic into another. Depending on context, it is also sometimes said to \emph{lift} logical claims from one logic into another (typically richer) logic.
+
+\subsection{Explaining the \textsc{Morphism} Rule}
+We are now equipped to explain the \textsf{Morphism} rule of Figure \ref{fig:multiccg}. This rule requires a derivation of a semantics in $\lambda_H$ for $\Gamma$ with grammatical type $C$ in one Heyting Algebra $H$, and if there is a Heyting Algebra homomorphism from $H$ to $H'$ (written $H\leadsto H'$), the rule gives $\Gamma$ a semantics in $\lambda_H'$ by applying the homomorphism to the elements of $H$ in the existing semantics.
+\todo[inline]{do I need to restrict which categories this rule applies to? In some sense many categories whose denotations are just from the ambient logic don't actually change, some categories whose denotations are functions don't necessarily translate unless we overload Morphism to do type-driven translation, and many lexicon entries are actually just polymorphic over the chosen HA --- which is not modelled in the formalization above, but is what I actually do in the implementation! So this formalization touches on the key ideas, but isn't quite right.
+\hrule
+So, definitely need some constraints on this, other than ``just do it this way.''
+Could do type-driven translation, which is exactly what I do for coordinators. This would look like different morphism rules for each grammatical construction, and would bottom out in base-category-specific morphism rules.
+Or I could try to define general criteria semantically... but that wouldn't play well with the automation approaches I'm interested in.
+Maybe something similar to type-driven translation via a typeclass that builds the translation is right, if it works? one morphism rule requiring semantics, morphism, and a ``can translate'' judgment (typeclass) that builds up the actual translation on $\lambda_H$ terms. Could then give generic rules for the slash types, and of course the base types would need to have their own instances provided. But that's done once per selection of base types, and then the whole thing is portable across logics. But this could actually get weird since the slash types have contravariant parts. For example, couldn't use a HA morphism to translate a $S/S$ across, because the argument semantics are contravariant on the right.
+So perhaps something more like a ``morphable'' judgment and ``co-morphable'' judgement? and basically only things that are HA-independent are co-morphable??? this is getting more complex.
+}
+
+\subsection{Quantification}
+Strictly speaking Heyting Algebras do not necessarily support any form of quantification.
+Typically there are two ways to extend a Heyting Algebra to support quantification.
+Algebraically, there are a range of further algebras including Cylindric Algebras~\todo{cite} and Polyadic Algebras~\todo{cite}, which give purely algebraic characterizations.
+More common is to allow a Heyting Algebra to exist within a lambda calculus, such that primitives of the lambda calculus can implement quantification, for example by defining or assuming objects $\overline\forall$ and $\overline\exists$ which take functions of type $T\mapsto H$ (for any $T$) and model universal and existential quantification, respectively (e.g., implementing $\forall x\ldotp x = 3$ via $\overline\forall(\lambda x\ldotp x = 3)$).
+(This corresponds to the notion of a hyperdoctrine in category-theoretic semantics for logic.\todo{check})
+
+
+\section{A Tour of Linguistically-Relevant Heyting Algebras}
+
+\subsection{Boolean Algebras}
+Classic linguistic semantics going back to Montague and earlier used a simply-typed lambda calculus with two base types: $e$ (for entities) and $t$ (for truth type), where $t$ is in fact the type of booleans, and therefore a Boolean Algebra.
+\todo{...}
+
+\subsection{Predicates over Worlds and Time}
+The classic expository example of compositional semantics is the extensional variety, where the meaning of a sentence is simply a boolean truth value.  But in fact, intensional variants, where the meaning of a sentence is a predicate over worlds and/or times, are a natural extension. Textbook presentations note that adapting extensional semantics to intensional ones is rather rote~\cite[Sec.~6.6]{jacobson2014compositional} and typically left as an implicit ``preprocessing'' step of sorts for any application or study.  This is in fact because booleans are a Heyting Algebra, and HA-valued predicates are themselves also Heyting Algebras.
+
+It turns out this informal practice can be made formal and explicit with the notion of a Heyting Algebra homomorphism.
+For any (semantic) predicate argument type $T$ and semantic type $H$ which is a Heyting Algebra, the semantic type $T\rightarrow H$ is \emph{also} a Heyting Algebra: the true and false values are simply constant functions, and the binary operations are simply functions that provide the same argument to each side: the conjunction of predicates $p$ and $q$ is simply $\lambda t\ldotp (p~t)\wedge(q~t)$. Applying this construction twice turns extensional semantics into intensional semantics.
+This is in fact a special case of a common ``trick'' in many applications of universal algebra is that for any given class of algebras $\mathcal{A}$ (e.g., Heyting Algebras), given any $A\in\mathcal{A}$ and other type $B$, $B\rightarrow A\in\mathcal{A}$. We demonstrate this for the class of Heyting Algebras: given a Heyting Algebra $H$ and some arbitrary type of arguments $T$, the function space $T\rightarrow H$ also carries the Heyting Algebra structure given by
+\[
+\begin{array}{c}
+    x\land y = \lambda a\ldotp x~a\land y~a\\
+    x\vee y = \lambda a\ldotp x~a\vee y~a\\
+    x\Rightarrow y = \lambda a\ldotp x~a\Rightarrow y~a\\
+    \top = \lambda a\ldotp \top\\
+    \bot = \lambda a\ldotp \bot\\
+\end{array}
+\]
+which is is in fact the definition of a Heyting Algebra homomorphism $H\leadsto(T\rightarrow H)$
+This construction is often unnamed in the literature, but is colloquially known as the ``pointwise lifting'' of $H$ since it simply lifts the original algebra's structure one ``point'' (i.e., function argument) at a time.\footnote{In categorical algebra, this is also known as \emph{powering}~\todo[inline]{cite}} Critically, it can be iterated, such that a function with any number of (curried) parameters gives rise again to a Heyting Algebra as long as the final result type is some Heyting Algebra.
+Elements of the original algebra $H$ are naturally equipped with an injection $\lceil a\rceil = \lambda\_\ldotp a$ as a constant function, but the new larger algebra allows elements which do discriminate on the argument.
+This is precisely the reason why intensional semantics can be converted to extensional semantics: for a set of times $T$ and worlds $W$, lifting intensional semantics to extensional semantics is a matter of applying pointwise lifting twice.
+
+For this to be truly useful, we must also address how to reuse the lexicon; we study this in detail later, but as a preview consider that for rigid designators, extensional semantics lift to intensional semantics by simply lifting a constant to a constant function.
+
+\subsection{Relationship to Type-Driven Translation}
+
+\todo[inline]{
+Apparently Montague suggested an arbitrary number of levels of semantic interpretation, stacked, and others have at least kicked the tires on this idea. And he explicitly talked about morphisms from syntax to semantics in EFL. (see discussion p~16 in the semantic handbook v1).
+
+Arguably my idea is very much in this spirit, but stacking layers of semantics. Need to read EFL carefully and frame correctly.
+}
+
+This notion is also loosely related to the concept of type-driven translation~\cite{klein1985type}, the idea that rather than specifying semantic combinations in the lexicon for every variety of categories, one can (and should) give semantic composition operations in a way that is ignorant of the particular grammatical categories, paying attention only to semantic categories~\todo{terribly phrased...}. With the insight that pointwise lifting allows us to reuse many semantic notions, we can restate the principles of type-driven translation in terms of Heyting Algebras.
+
+We call a grammatical category $C$ a \emph{surface Heyting Algebra} (or \textsf{sHA}) if $\llbracket C\rrbracket$ is a Heyting Algebra.  Then as long as $\llbracket S\rrbracket$ is a Heyting Algebra, then $S$, $S/NP$, $(S/NP)\textbackslash{NP}$, and any other slash type with a root of $S$ is a syntactic Heyting Algebra. Likewise, since the semantic type of adjectives are typically pointwise Heyting Algebras themselves, $ADJ$ and all slash types rooted in $ADJ$ are also \textsf{sHA}s. This offers another convenient solution to the problem of specifying the semantics of words like ``and'' and ``or'':
+\begin{mathpar}
+\inferrule[Lex-And]{
+    \mathsf{sHA}(X)
+}{
+    \textsf{and}\vdash (X/X)\textbackslash{X} \Rightarrow \lambda a:\llbracket{X}\rrbracket\ldotp\lambda b:\llbracket{X}\rrbracket\ldotp a\land b
+}
+\end{mathpar}
+In typical Montague-style semantics where even nouns are predicates on individuals, this permits conjunction of nearly every grammatical category. In type-theoretical semantics~\todo{lots of cites}, most categories will remain subject to conjunction (and in similarly, disjunction).
+
+This is in fact similar to the solution proposed by Carpenter~\cite[Ch.~6]{carpenter1998type} for coordination in terms of a notion of ``\textsf{BoolType}'' which was essentially the set of all possible pointwise liftings of the booleans as a Boolean Algebra, with the pointwise semantic construction built explicitly in a series of rules.
+\todo[inline,color=blue]{TENTATIVE: Our original proof assistant prototype made use of Carpenter's construction hard-coded to Coq's \textsf{Prop} before generalizing to arbitrary Heyting Algebras, permitting us to use the same entries for coordination across a range of target logics.}
+
+\subsection{Intuitionistic Type Theory}
+For several decades, intuitionistic type theory~\todo{martin-l\"of} has been a subject of interest to at least some formal semanticists~\cite{ranta1991intuitionistic,ranta1994ttg,luo2010type,chatz2014nlcoq,chatzikyriakidis2017modern,bekki14dts,sundholm1986proof} because the presence of \emph{dependent} type-formers (which allow types to mention values) allows some additional flexibility in choosing how to represent certain linguistic phenomena.
+The semantic type \textsf{Prop} of intuitionistic propositions is a Heyting Algebra suitable for intensional or extensional semantics.
+Critically, the power of dependent type theory is also what enables our implementation to target multiple logics at once: the Calculus of Inductive Constructions~\todo{cite} acts simultaneously as a target logic and a meta-logic in which to formalize additional logics for targeting.
+
+\todo[inline]{address the richer semantics of adjectives and such, where lifting is and is not possible/sensible}
+
+\subsection{Linear-Temporal Logic}
+In some domains it is fruitful to define CCGs targeting \emph{other} formal languages, such as a typed lambda calculus with a type for linear-temporal logic (\textsc{LTL}) formulas~\todo{dzifcak}.
+
+Let us assume we work in a predicate variant of the standard future-time \textsc{LTL}, i.e., where rather than having propositions true in various states, we can construct \emph{state predicates} $\phi$ on the state.  
+Let us assume a semantic type \textsf{State} of states, and a \textsf{World} is an infinite sequence of \textsf{State}s.
+Then our \textsc{LTL} formulas $\Psi$ are:
+\[\begin{array}{rrcl}
+\textrm{Constants}&c & ::= & 0 \mid \ldots\\
+\textrm{Projections}&p & ::= & f_i \mid \ldots\\
+\textrm{State Predicates}&\phi &::=& c = p \mid p = p \mid p < c \mid \ldots\\
+\textrm{LTL} &\Psi &::=& \phi \mid \Box\Psi \mid \lozenge\Psi \mid \bigcirc\Psi \mid \Psi\land\Psi\mid ...
+\end{array}\]
+assuming we have standard logical connectives in LTL formulas. 
+\todo[inline]{spell out that each category above is a semantic type...}
+
+\subsection{Computation Tree Logic}
+TODO
+
+\subsection{More Expressive Logics}
+There are many logics with much richer structure than that of a Heyting Algebra (which was only intended to capture propositional intuitionistic reasoning), but which contain a Heyting Algebra as a substructure.  This includes many modal logics, including \textsc{LTL} and many modal logics used to capture tense in prior work~\todo{cite}.  It also includes very expressive logics such as the \emph{separation logic} used in formal verification of computer programs.  This logic is a refinement of the logic of bunched implications~\cite{ohearn1999bunched}, whose structure is modeled by a \emph{BI-algebra}, which is essentially a Heyting Algebra with additional logical connectives for spatial reasoning.
+The same pointwise lifting construction given for Heyting Algebras extends straightforwardly to BI-Algebras as well.
+
+\todo[inline]{discussing ``separately'' offers a nice segue into discussing opportunity for specialization.}
+
+Let's consider the use of this separating conjunction, which is used to specify that two things hold of physically disjoint resources.  Consider for example, the claim that ``separately x points to 3 and y points to 4.''
+We can add a base category \textsf{SEP} for words which can separate clauses of a separating conjunction, then add to our lexicon:
+\[\textrm{and} : \textsf{SEP} \Rightarrow ()\]
+\[\textrm{separately} : ((S/_\star S)/_\star \textsf{SEP})/_\star S \Rightarrow \lambda x\ldotp\lambda y\ldotp x \ast y \]
+
+\section{Multi-Targeted Lexicons}
+The observation that categorial grammars simply require a lambda calculus with a Heyting Algebra is not strictly new\todo{did Lambek say LC, or just topos, which models STLC+pairs+HA?} but it remains to show that we can usefully reuse portions of a lexicon across multiple targets.
+To do this, we must adapt the standard notion of lexicon to be \emph{relative to a given Heyting Algebra}. We will write lexicon entries for a given Heyting Algebra $H$ prefixed by $H\vdash$.  Entries may be specific to a particular Heyting Algebra such as \textsc{LTL}, or may be parametric over any Heyting Algebra.
+
+\todo[inline]{rework in terms of new coordination / type-driven discussion above, noting that even when we're only interested in targeting a single logic, the notions of Heyting Algebras and pointwise liftings appear again and again. Basically the reason type-driven translation works is because it is implicitly exploiting/constructing a pointwise lifting!}
+As a starting point, we can define lexicon entries for conditionals and coordinators parameterized by a choice of Heyting Algebra.
+Following Carpenter-style presentation of coordination, we can define a syntactic type as \textsf{TruthValued} in a particular Heyting Algebra $H$ when its final \emph{semantic} result type is $H$:
+\begin{mathpar}
+\inferrule{\mathsf{TruthValued}(X,H)}{\mathsf{TruthValued}(X\setminus_m Y,H)}
+\and
+\inferrule{\mathsf{TruthValued}(X,H)}{\mathsf{TruthValued}(X/_m Y,H)}
+\and
+\inferrule{\mathsf{isHeytingAlgebra}(\llbracket{X}\rrbracket,H)}{\mathsf{TruthValued}(X,H)}
+\end{mathpar}
+This will typically ensure sentences, as well as syntactic categories with predicates as underlying semantics (e.g., in some presentations of adjectives) are \textsf{TruthValued}.
+And with this in mind, we can give \emph{conditional} lexicon entries:
+\[\inferrule{\mathsf{TruthValued}(X,H)}{H\vdash\textrm{and} : (X\setminus_\star X)/_\star X \Rightarrow \lambda x\ldotp\lambda y\ldotp x\wedge_H y}\]
+\[\inferrule{\mathsf{TruthValued}(X,H)}{H\vdash\textrm{or} : (X\setminus_\star X)/_\star X \Rightarrow \lambda x\ldotp\lambda y\ldotp x\vee_H y}\]
+
+\paragraph{Lifting Extensional Semantics to Intensional}
+We can also give rules that specifically lift a word across Heyting Algebras. Consider the example given earlier where predicates into a given HA (functions into a given HA) themselves form Heyting Algebras. We can directly reuse the entirety of a lexicon over the base Heyting Algebra:
+\[
+\inferrule{H\vdash w : C \Rightarrow t}{T\rightarrow H\vdash w : C \Rightarrow \lambda \_\ldotp t}
+\]
+Applying this construction twice can lift an intensional lexicon to an extensional lexicon incorporating worlds and times.
+In practice of course, we may not want to lift \emph{every} word of an intensional lexicon, because we would presumably wish to replace at least some words' denotations with versions sensitive to the current time or world. In those cases restrictions of this promotion rule could be considered, based on the specific word $w$ and/or the syntactic category in question. Proper nouns (rigid names), common nouns, adverbs, and similar are likely to generally be liftable in this way. Words whose meaning may depend on time or place in intensional semantics, such as verbs, may be desirable to exclude.
+
+\paragraph{Lifting HA Semantics to BI-Algebras}
+In the case where we seek to model the relationship between natural language and a given formal logical language, there is frequently \emph{even more} similarity between semantics in different logics than in the case of modeling regular natural language.
+
+For example...
+
+\paragraph{Reusing Parametric Lexicon Rules with LTL}
+Our parametric rules modeling the operations of a Heyting Algebra immediately give coordination and conditionals.
+Allowing ...
+
+``light1 is red until light2 is red''
+
+``light1 is red whenever light2 is not red''\\
+$\mathsf{LTL}\vdash \textrm{whenever} : (S/_\star S)\setminus_\star S \Rightarrow \lambda x\ldotp\lambda y\ldotp \Box(y\Rightarrow_\mathsf{LTL} x) $\\
+$\Box(\textit{light2}\neq\mathsf{R}\Rightarrow\textit{light1}=\mathsf{R})$
+
+``light1 remains green until light1 becomes yellow''
+
+\todo[inline,color=blue]{if we tweak state formulas slightly, we end up with \emph{two} HAs, so parametric and reuse do double-duty}
+
+\paragraph{Parametric Lexicons and Modal Logics}
+...
+
+\section{Experiments with Temporal Logics}
+We experiment with the NNN hand-collected examples of \textsc{LTL} and \textsc{CTL} specifications from \citet{dwyer1999patterns}, available publicly.\footnote{\url{https://matthewbdwyer.github.io/psp/}}
+This dataset includes 509 pairings of English and temporal specifications in \textsc{LTL} and \textsc{CTL}.
+The original dataset is labels NNN English specifications with \textsc{LTL} specifications and NNN with \textsc{CTL} specifications (with an overlap of NNN specifications). After correcting for some mislabelled examples (e.g., an example using \textsc{LTL} operators in supposed \textsc{CTL} specifications), these numbers are NNN \textsc{LTL} and NNN \textsc{CTL} specifications with an overlap of NNN. A corrected dataset is available with our replication package.\todo{do!}
+
+We developed a lexicon of NNN manually-derived lexicon entries to cover the English specifications, with statistics given in Figure \todo{do!}, which describes how many lexicon entries were general, specific to a particular temporal logic, or specific to a particular formula (e.g., speaking about a specific piece of the system). The logic-specific entries are substantially fewer in number than those shared across both logics.
+
+\todo[inline]{Should I also talk about an additional layer of parameterization by state formulae?}
+
+\subsection{Alternative Approaches}
+\textsc{LTL}~\cite{pnueli1977temporal} and \textsc{CTL}~\cite{clarke1981design} are overlapping but distinct subsets of a common temporal logic \textsc{CTL}${}^*$~\cite{emerson1986sometimes}. In principle we could have developed a single lexicon targeting \textsc{CTL}${}^*$. However, stratifying the lexicon brings several advantages both for temporal logics specifically and for knowledge about stratified lexicons in general:
+\begin{itemize}
+    \item Only the lexicon entries specific to \textsc{LTL} or \textsc{CTL} are actually specific to temporal logics. The remaining entries are agnostic to time, and could be reused for other target logics.
+    \item In the particular case of temporal logics, a common motivation for wanting these specifications at all is for automated verification or program synthesis. The computational complexity of \textsc{CTL}${}^*$ is \textsc{PSPACE}-complete~\todo{cite} 
+\end{itemize}
+
+
+\todo[inline]{check length: must be between 7 and 10 pages TOTAL (including everything, notably bibliography)}
+
+\section{Related Work}
+\todo[inline]{clarify, extend, polish, etc.}
+\paragraph{Lappin, HoCST2e}
+Tackles related problem to my TACL paper, by proposing a curry style typing and model theory, and allowing polymorphic entries.
+
+But his examples presuppose a model that violates parametricity: X know a Y and X knows that F must behave differently / mean different kinds of knowing. If it's a lexicon entry with different semantics for different grammatical types, classic approaches are fine. But he wants them to have the same denotation, which years propositions differently from entities. In his formalism, he's argue we really only care about cases where propositions and individuals don't intersect, which is... Okay I guess, but awkward, and I can't shake the feeling that he's presupposing inconsistent semantics.
+
+\section*{Acknowledgements}
+This work was supported in part by grant \grantno from \funder.
+
+\bibliography{tacl2018,other,ccg}
+\bibliographystyle{acl_natbib}
+
+\end{document}
+
+
