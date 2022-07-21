@@ -420,10 +420,10 @@ def ctl_to_ctlstar {T : Type u} (x : ctl.CTLFormula T) : ctlstar.CTLStarFormula 
   | ctl.CTLFormula.not a => ctlstar.CTLStarFormula.not (ctl_to_ctlstar a)
   | ctl.CTLFormula.stateProp p => ctlstar.CTLStarFormula.stateProp p
   | ctl.CTLFormula.AX a => ctlstar.CTLStarFormula.A (ctlstar.CTLPathFormula.X (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
-  | ctl.CTLFormula.AU a => ctlstar.CTLStarFormula.A (ctlstar.CTLPathFormula.U (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
+  | ctl.CTLFormula.AU a => ctlstar.CTLStarFormula.A (ctlstar.CTLPathFormula.U (ctlstar.CTLPathFormula.starformula ctlstar.CTLStarFormula.true) (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
   | ctl.CTLFormula.AG a => ctlstar.CTLStarFormula.A (ctlstar.CTLPathFormula.G (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
   | ctl.CTLFormula.EX a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.X (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
-  | ctl.CTLFormula.EU a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.U (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
+  | ctl.CTLFormula.EU a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.U (ctlstar.CTLPathFormula.starformula ctlstar.CTLStarFormula.true) (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
   | ctl.CTLFormula.EG a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.G (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
 
 instance CTLStarMorphism (T : Type u) : HeytingAlgebraMorphism (ctl.CTLFormula T) (ctlstar.CTLStarFormula T) where
