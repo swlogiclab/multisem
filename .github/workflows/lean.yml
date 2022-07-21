@@ -31,7 +31,7 @@ jobs:
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf > elan-init.sh
           chmod +x elan-init.sh
           ./elan-init.sh -y --default-toolchain leanprover/lean4:stable
-          source ~/.elan/env
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
       # Runs a set of commands using the runners shell
       - name: Build
