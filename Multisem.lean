@@ -306,9 +306,24 @@ theorem exmisc : (pspec (["three"] ++ (["is"] ++ (["non-negative"] ++ (["and"] +
 #print String
 #print Char
 
+--set_option trace.Elab.definition true in
+macro "tokenize" s:term : term => `(String.splitOn $s " ")
+-- fails b/c it expands to :: instead  of ++
+--#check (pspec (tokenize "four is even"))
+
+--instance SynthCons2App (P:Type u){s s2 ss c}[fixed:Synth P ([s] ++ (s2 :: ss)) c] : Synth P (s :: s2 :: ss) c where
+--  denotation := fixed.denotation
+--#check (pspec (tokenize "four is even"))
+
+
+
+
+
+
+
 def StateFormula (T : Type u) := T -> Prop
 
-instance StateFormulatHeyting : HeytingAlgebra (StateFormula T) := pointwiseHA T Prop
+instance StateFormulatHeyting (T : Type u): HeytingAlgebra (StateFormula T) := pointwiseHA T Prop
 
 namespace ltl
   inductive LTLFormula (T : Type u) where
@@ -341,17 +356,6 @@ namespace ltl
   
 end ltl
 
-
-instance LTLHeyting (T : Type u) : HeytingAlgebra (ltl.LTLFormula T) where
-  top := ltl.true
-  bottom := ltl.false
-  conj := ltl.and
-  disj := ltl.or
-  impl := ltl.impl
-
-instance ltl_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ltl.LTLFormula T) where
-  morph := ltl.LTLFormula.stateProp
-
 namespace ctlstar
   mutual
     inductive CTLStarFormula (T : Type u) where
@@ -379,13 +383,6 @@ namespace ctlstar
 
 end ctlstar
 
-instance CTLStarHeyting (T : Type u) : HeytingAlgebra (ctlstar.CTLStarFormula T) where
-  top := ctlstar.CTLStarFormula.true
-  bottom := ctlstar.CTLStarFormula.false
-  disj := ctlstar.CTLStarFormula.or
-  conj := ctlstar.and
-  impl := ctlstar.impl
-
 namespace ctl
   inductive CTLFormula (T : Type u) where
     | false
@@ -405,12 +402,26 @@ namespace ctl
     CTLFormula.or (CTLFormula.not a) b
 end ctl
 
+instance LTLHeyting (T : Type u) : HeytingAlgebra (ltl.LTLFormula T) where
+  top := ltl.true
+  bottom := ltl.false
+  conj := ltl.and
+  disj := ltl.or
+  impl := ltl.impl
+
 instance CTLHeyting (T : Type u) : HeytingAlgebra (ctl.CTLFormula T) where
   top := ctl.CTLFormula.true
   bottom := ctl.CTLFormula.false
   disj := ctl.CTLFormula.or
   conj := ctl.and
   impl := ctl.impl
+
+instance CTLStarHeyting (T : Type u) : HeytingAlgebra (ctlstar.CTLStarFormula T) where
+  top := ctlstar.CTLStarFormula.true
+  bottom := ctlstar.CTLStarFormula.false
+  disj := ctlstar.CTLStarFormula.or
+  conj := ctlstar.and
+  impl := ctlstar.impl
 
 def ctl_to_ctlstar {T : Type u} (x : ctl.CTLFormula T) : ctlstar.CTLStarFormula T :=
   match x with
@@ -426,5 +437,28 @@ def ctl_to_ctlstar {T : Type u} (x : ctl.CTLFormula T) : ctlstar.CTLStarFormula 
   | ctl.CTLFormula.EU a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.U (ctlstar.CTLPathFormula.starformula ctlstar.CTLStarFormula.true) (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
   | ctl.CTLFormula.EG a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.G (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
 
+-- HA Morphisms
+
+-- CTL -> CTL*
 instance CTLStarMorphism (T : Type u) : HeytingAlgebraMorphism (ctl.CTLFormula T) (ctlstar.CTLStarFormula T) where
   morph := ctl_to_ctlstar
+
+-- State formulas -> LTL & CTL
+instance ltl_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ltl.LTLFormula T) where
+  morph := ltl.LTLFormula.stateProp
+instance ctl_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ctl.CTLFormula T) where
+  morph := ctl.CTLFormula.stateProp
+
+-- State formulas -> CTL* by way of CTL
+instance ctl_star_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ctlstar.CTLStarFormula T) where
+  morph := HeytingAlgebraMorphism.morph ∘ (@HeytingAlgebraMorphism.morph (StateFormula T) (StateFormulatHeyting T) (ctl.CTLFormula T) (CTLHeyting T) (ctl_state T))
+
+
+-- Additional specs
+
+def ltlspec (T : Type u) (l:List String) [sem:Synth (ltl.LTLFormula T) l S] : (ltl.LTLFormula T) :=
+  sem.denotation
+def ctlspec (T : Type u) (l:List String) [sem:Synth (ctl.CTLFormula T) l S] : (ctl.CTLFormula T) :=
+  sem.denotation
+def ctlstarspec (T : Type u) (l:List String) [sem:Synth (ctlstar.CTLStarFormula T) l S] : (ctlstar.CTLStarFormula T) :=
+  sem.denotation
