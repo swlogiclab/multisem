@@ -37,25 +37,20 @@ class Coordinator (P:Type u)[HeytingAlgebra P](w:String) where
 class SurfaceHeytingAlgebra (P:Type u) (n:Nat) (C:Cat) where
   combineProps : (P -> P -> P) -> interp P C -> interp P C -> interp P C
 
+
+-- TODO: Study how to rework combineProps in terms of pointwise lifting
+
 instance ADJHeytingAlgebra (P:Type u)[HeytingAlgebra P]{T}{n} : SurfaceHeytingAlgebra P n (@ADJ T) where
   combineProps op d1 d2 := fun x => op (d1 x) (d2 x)
 
-instance SHeytingAlgebra (P:Type u)[pt:HeytingAlgebra P]{n} : SurfaceHeytingAlgebra P n S where
+instance SHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n} : SurfaceHeytingAlgebra P n S where
   combineProps op d1 d2 := op d1 d2
 
-instance lSlashHeytingAlgebra (P:Type u)[pt:HeytingAlgebra P]{n:Nat}(C C' : Cat)[wit:SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (@lslash C C') where
+instance lSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (@lslash C C') where
   combineProps op d1 d2 := fun x => SurfaceHeytingAlgebra.combineProps n op (d1 x) (d2 x)
 
-instance rSlashHeytingAlgebra (P:Type u)[pt:HeytingAlgebra P]{n:Nat}(C C' : Cat)[wit:SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (@rslash C' C) where
+instance rSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (@rslash C' C) where
   combineProps op d1 d2 := fun x => SurfaceHeytingAlgebra.combineProps n op (d1 x) (d2 x)
-
--- This should just be imported from the HeytingAlgebras module, but for some reason that one isn't found by typeclass resolution, even though the definition is clearly found (I had to add '2' to this name)
-instance PropHeyting2 : HeytingAlgebra Prop where
-  top := True
-  bottom := False
-  conj x y := x ∧ y
-  disj x y :=  x ∨ y
-  impl x y := x -> y
 
 class lexicon (P : Type u) (w:String) (c:Cat) :=
   { denotation : interp P c }
@@ -70,7 +65,7 @@ class Synth (P:Type u)(ws:List String) (c:Cat) where
   denotation : interp P c
 instance SynthLex (P:Type u){w:String}{C:Cat}[lexicon P w C] : Synth P (List.cons w List.nil) C where
   denotation := lexicon.denotation w
-instance SynthRApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 (rslash c1 c2)][R:Synth P s2 c2] : Synth P (s1++s2) c1 where
+instance SynthRApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 (rslash c1 c2)][Synth P s2 c2] : Synth P (s1++s2) c1 where
   denotation := @Synth.denotation P s1 (rslash c1 c2) L (Synth.denotation s2)
 instance SynthLApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 c1][R:Synth P s2 (lslash c1 c2)] : Synth P (s1++s2) c2 where
   denotation := R.denotation _ (L.denotation)
@@ -94,7 +89,7 @@ instance LComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (lslash c1 c2)][R:Synth P s
 
 def dbgspec (l:List String) (C:Cat) [sem:Synth Prop l C] : interp Prop C :=
   sem.denotation
-def pspec (l:List String) [sem:Synth Prop l S] : Prop :=
+def pspec (l:List String) [HeytingAlgebra Prop][sem:Synth Prop l S] : Prop :=
   sem.denotation
 
 --
@@ -285,10 +280,10 @@ def every_natural_is_odd_or_even := (pspec (["every"] ++ (["natural"] ++ (["is"]
 
 
 -- This is the absolute simplest morphism between lexicons
-instance SynthMorphBase (P:Type u)[ph:HeytingAlgebra P](t:List String)(psem:Synth P t S)(Q:Type v)[qh:HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where
+instance SynthMorphBase (P:Type u)[HeytingAlgebra P](t:List String)(psem:Synth P t S)(Q:Type v)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where
   denotation := ham.morph psem.denotation
 -- Marginally more interesting; weird b/c I had to constrain the HAs to be in the same universe
---instance SynthMorphADJ (T:Type u)(P:Type u)[ph:HeytingAlgebra P](t:List String)(psem:Synth P t (@ADJ T))(Q:Type u)[qh:HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
---  denotation := λ x => ham.morph (psem.denotation x)
+instance SynthMorphADJ (T:Type u)(P:Type u)[HeytingAlgebra P](t:List String)(psem:Synth P t (@ADJ T))(Q:Type u)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
+  denotation := λ x => ham.morph (psem.denotation _ x)
 --
 
