@@ -1,3 +1,5 @@
+import Multisem.HeytingAlgebras
+
 universe u v t
 
 -- We're going to go full traditional CCG here
@@ -10,8 +12,6 @@ inductive Cat : Type (u+1)  :=
 | lslash : Cat  -> Cat  -> Cat 
 open Cat
 
-#check Unit
-
 --axiom polyunit.{α} : Type α
 --axiom pu.{α} : polyunit.{α}
 
@@ -20,52 +20,6 @@ open Cat
 --| pu : polyunit
 def polyunit.{α} : Type α := ULift Unit
 def pu.{α} : polyunit.{α} := ULift.up ()
-
-class HeytingAlgebra (P:Type u) where
-  top : P
-  bottom : P
-  conj : P -> P -> P
-  disj : P -> P -> P
-  impl : P -> P -> P
-class HeytingAlgebraLaws (P : Type u) extends HeytingAlgebra P where
-  conj_comm : ∀ x y, conj x y = conj y x
-  conj_assoc : ∀ x y z, conj (conj x y) z = conj x (conj y z)
-  disj_comm : ∀ x y, disj x y = disj y x
-  disj_assoc : ∀ x y z, disj (disj x y) z = disj x (disj y z)
-  distrib_left : ∀ x y z, conj x (disj y z) = disj (conj x y) (conj x z)
-  distrib_right : ∀ x y z, conj (disj x y) z = disj (conj x z) (conj y z)
-  -- TODO: missing impl laws
-
-class HeytingAlgebraMorphism (P : Type u)[HeytingAlgebra P](Q : Type v)[HeytingAlgebra Q] where
-  morph : P -> Q
-class HeytingAlgebraMorphismLaws (P : Type u)[HeytingAlgebra P](Q : Type v)[HeytingAlgebra Q] extends HeytingAlgebraMorphism P Q where
-  preserves_top : morph HeytingAlgebra.top = HeytingAlgebra.top
-  preserves_bottom : morph HeytingAlgebra.bottom = HeytingAlgebra.bottom
-  preserves_conj : ∀ x y, morph (HeytingAlgebra.conj x y) = HeytingAlgebra.conj (morph x) (morph y)
-  preserves_disj : ∀ x y, morph (HeytingAlgebra.disj x y) = HeytingAlgebra.disj (morph x) (morph y)
-  preserves_impl : ∀ x y, morph (HeytingAlgebra.impl x y) = HeytingAlgebra.impl (morph x) (morph y)
-
-
-instance pointwiseHA (X : Type v)(H : Type u)[HeytingAlgebra H] : HeytingAlgebra (X -> H) where
-  top := λ_ => HeytingAlgebra.top
-  bottom := λ_ => HeytingAlgebra.bottom
-  conj x y := λ p => HeytingAlgebra.conj (x p) (y p)
-  disj x y := λ p => HeytingAlgebra.disj (x p) (y p)
-  impl x y := λ p => HeytingAlgebra.impl (x p) (y p)
-
-instance pointwiseHALaws (X : Type v)(H : Type u)[HeytingAlgebraLaws H] : HeytingAlgebraLaws (X -> H) where
-  top := λ_ => HeytingAlgebra.top
-  bottom := λ_ => HeytingAlgebra.bottom
-  conj x y := λ p => HeytingAlgebra.conj (x p) (y p)
-  disj x y := λ p => HeytingAlgebra.disj (x p) (y p)
-  impl x y := λ p => HeytingAlgebra.impl (x p) (y p)
-  conj_comm x y := by { apply funext; intro p; apply HeytingAlgebraLaws.conj_comm }
-  conj_assoc x y z := by { apply funext; intro p; apply HeytingAlgebraLaws.conj_assoc }
-  disj_comm x y := by { apply funext; intro p; apply HeytingAlgebraLaws.disj_comm }
-  disj_assoc x y z := by { apply funext; intro p; apply HeytingAlgebraLaws.disj_assoc }
-  distrib_left x y z := by apply funext; intro p; apply HeytingAlgebraLaws.distrib_left
-  distrib_right x y z := by apply funext; intro p; apply HeytingAlgebraLaws.distrib_right
-
 
 -- We do Lambek-style interpretation of lslash
 def interp (P:Type u) (c:Cat) : Type u :=
@@ -95,7 +49,8 @@ instance lSlashHeytingAlgebra (P:Type u)[pt:HeytingAlgebra P]{n:Nat}(C C' : Cat)
 instance rSlashHeytingAlgebra (P:Type u)[pt:HeytingAlgebra P]{n:Nat}(C C' : Cat)[wit:SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (@rslash C' C) where
   combineProps op d1 d2 := fun x => SurfaceHeytingAlgebra.combineProps n op (d1 x) (d2 x)
 
-instance PropHeyting : HeytingAlgebra Prop where
+-- This should just be imported from the HeytingAlgebras module, but for some reason that one isn't found by typeclass resolution, even though the definition is clearly found (I had to add '2' to this name)
+instance PropHeyting2 : HeytingAlgebra Prop where
   top := True
   bottom := False
   conj x y := x ∧ y
@@ -111,7 +66,7 @@ instance coordLexicon (P:Type)[HeytingAlgebra P](w:String) (C:Cat)[Coordinator P
 -- We don't need the other associativity, as it can be recovered by shifting
 
 
-class Synth (P:Type u) (ws:List String) (c:Cat) where
+class Synth (P:Type u)(ws:List String) (c:Cat) where
   denotation : interp P c
 instance SynthLex (P:Type u){w:String}{C:Cat}[lexicon P w C] : Synth P (List.cons w List.nil) C where
   denotation := lexicon.denotation w
@@ -160,11 +115,13 @@ def even (n:Nat) : Bool :=
 
 
 
-instance onelex   : lexicon Prop "one" (@NP Nat) := { denotation := asNat 1 }
-instance twolex   : lexicon Prop "two" (@NP Nat) := { denotation := asNat 2 }
-instance threelex : lexicon Prop "three" (@NP Nat) := { denotation := asNat 3 }
-instance fourlex  : lexicon Prop "four" (@NP Nat) := { denotation := asNat 4 }
-instance fivelex  : lexicon Prop "five" (@NP Nat) := { denotation := asNat 5 }
+instance zerolex  : lexicon Prop "zero"   (@NP Nat) := { denotation := asNat 0 }
+instance onelex   : lexicon Prop "one"    (@NP Nat) := { denotation := asNat 1 }
+instance twolex   : lexicon Prop "two"    (@NP Nat) := { denotation := asNat 2 }
+instance threelex : lexicon Prop "three"  (@NP Nat) := { denotation := asNat 3 }
+instance fourlex  : lexicon Prop "four"   (@NP Nat) := { denotation := asNat 4 }
+instance fivelex  : lexicon Prop "five"   (@NP Nat) := { denotation := asNat 5 }
+
 instance evenlex  : lexicon Prop "even" (@ADJ Nat) := { denotation := fun x => even x = true }
 instance oddlex   : lexicon Prop "odd" (@ADJ Nat) := { denotation := fun x => odd x = true }
 
@@ -178,8 +135,8 @@ instance and_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "and" where
 instance or_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "or" where
   denoteCoord a b := HeytingAlgebra.disj a b
 
-#check dbgspec ["one"] (@NP Nat)
-#check dbgspec (["is"]++["odd"]) (lslash (@NP Nat) S)
+--#check dbgspec ["one"] (@NP Nat)
+--#check dbgspec (["is"]++["odd"]) (lslash (@NP Nat) S)
 
 
 -- These would need a the reverse associativity lemma, which is commented out because:
@@ -188,7 +145,7 @@ instance or_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "or" where
 --#check pspec (["one"]++["is"]++["one"])
 --#check pspec (["one"]++["is"]++["odd"])
 --#check pspec ((["one"]++["is"])++["odd"])
-#check pspec (["one"]++(["is"]++["odd"]))
+def one_is_odd :=  pspec (["one"]++(["is"]++["odd"]))
 
 
 
@@ -201,16 +158,16 @@ instance or_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "or" where
 instance equals_eq_lex {T}: lexicon Prop "equals" (rslash (lslash (@NP T) S) (@NP T)) where
   denotation := fun r l => r = l 
 
-#check (pspec (["one"] ++ (["equals"] ++ ["one"])))
-#check (pspec (["one"] ++ (["is"] ++ ["odd"])))
-#check (pspec (["two"] ++ (["is"] ++ ["even"])))
+def one_equals_one := (pspec (["one"] ++ (["equals"] ++ ["one"])))
+--def one_is_odd := (pspec (["one"] ++ (["is"] ++ ["odd"])))
+def two_is_even := (pspec (["two"] ++ (["is"] ++ ["even"])))
 set_option synthInstance.maxHeartbeats 200000
 set_option maxHeartbeats 200000
-#check (pspec (["one"] ++ (["is"] ++ (["odd"] ++ (["and"] ++ (["two"] ++ (["is"] ++ ["even"])))))))
+def one_is_odd_and_two_is_even := (pspec (["one"] ++ (["is"] ++ (["odd"] ++ (["and"] ++ (["two"] ++ (["is"] ++ ["even"])))))))
 ---- a ha, so the problem is that I'm missing rules to reassociate appropriately...
 ---- ah, okay, was missing a couple structural rules
 ---- but so far, while I haven't added universe polymorphism or sorted the primitives by logical type, this seems way snappier than Coq
-#check (pspec ((["one"] ++ (["is"] ++ ["odd"])) ++ (["and"] ++ (["two"] ++ (["is"] ++ ["even"])))))
+def one_is_odd_and_two_is_even' := (pspec ((["one"] ++ (["is"] ++ ["odd"])) ++ (["and"] ++ (["two"] ++ (["is"] ++ ["even"])))))
 --
 --
 --
@@ -274,191 +231,64 @@ instance addonelex : lexicon Prop "addone" (@NP (Nat -> Nat)) where
 instance nonneg_lex : lexicon Prop "non-negative" (@ADJ Nat) where
   denotation := fun x => 0 <= x 
 
-#check (pspec (["addone"] ++ (["equals"] ++ ["addone"])))
-#check (pspec (["addone"] ++ (["is"] ++ ["monotone"])))
-#check (pspec (["addone"] ++ (["given"] ++ (["one"] ++ (["is"] ++ ["two"])))))
-#check (pspec (["addone"] ++ (["given"] ++ (["three"] ++ (["is"] ++ ["four"])))))
-#check (pspec (["addone"] ++ (["given"] ++ (["three"] ++ (["equals"] ++ ["four"])))))
+def addone_equals_addone := (pspec (["addone"] ++ (["equals"] ++ ["addone"])))
+def addone_is_monotone := (pspec (["addone"] ++ (["is"] ++ ["monotone"])))
+def addone_given_one_is_two := (pspec (["addone"] ++ (["given"] ++ (["one"] ++ (["is"] ++ ["two"])))))
+def addone_given_three_is_four := (pspec (["addone"] ++ (["given"] ++ (["three"] ++ (["is"] ++ ["four"])))))
+def addone_given_three_equals_four := (pspec (["addone"] ++ (["given"] ++ (["three"] ++ (["equals"] ++ ["four"])))))
 
-#check dbgspec (["is"] ++ ["non-negative"]) (lslash (@NP Nat) S)
-#check dbgspec ["every"] (quant Nat)
-#check dbgspec ["natural"] (@CN Nat)
-#check dbgspec (["every"]++["natural"]) (rslash (S) (lslash (@NP Nat) S))
+--#check dbgspec (["is"] ++ ["non-negative"]) (lslash (@NP Nat) S)
+--#check dbgspec ["every"] (quant Nat)
+--#check dbgspec ["natural"] (@CN Nat)
+--#check dbgspec (["every"]++["natural"]) (rslash (S) (lslash (@NP Nat) S))
 
-#check (pspec (["every"] ++ (["natural"] ++ (["is"] ++ ["non-negative"]))))
-#check (pspec (["some"] ++ (["natural"] ++ (["is"] ++ ["non-negative"]))))
-#check (pspec (["some"] ++ (["natural"] ++ (["is"] ++ ["even"]))))
+def every_natural_is_nonnegative := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ ["non-negative"]))))
+def some_natural_is_nonnegative := (pspec (["some"] ++ (["natural"] ++ (["is"] ++ ["non-negative"]))))
+def some_natural_is_even := (pspec (["some"] ++ (["natural"] ++ (["is"] ++ ["even"]))))
 
-#check (pspec (["four"] ++ (["is"] ++ (["even"] ++ (["and"] ++ ["non-negative"])))))
-#check (pspec (["three"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["four"] ++ (["is"] ++ (["even"]))))))))
+def four_is_even_and_nonnegative := (pspec (["four"] ++ (["is"] ++ (["even"] ++ (["and"] ++ ["non-negative"])))))
+def three_is_nonnegative_and_four_is_even := (pspec (["three"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["four"] ++ (["is"] ++ (["even"]))))))))
 
-theorem exmisc : (pspec (["three"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["four"] ++ (["is"] ++ (["even"])))))))) :=
+theorem exmisc : three_is_nonnegative_and_four_is_even :=
   by simp
      apply And.intro
      . simp; sorry
      . simp; rfl
 
-#check (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["some"] ++ (["natural"] ++ (["is"] ++ ["even"])))))))))
+def every_natural_is_nonneg_and_some_natural_is_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["some"] ++ (["natural"] ++ (["is"] ++ ["even"])))))))))
 
-#check (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["odd"] ++ (["or"] ++ ["even"]))))))
+def every_natural_is_odd_or_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["odd"] ++ (["or"] ++ ["even"]))))))
 
 
-#print String
-#print Char
 
+-- Need to carefully process the Lean 4 metaprogramming book, then ask on Zulip: https://github.com/arthurpaulino/lean4-metaprogramming-book
 --set_option trace.Elab.definition true in
-macro "tokenize" s:term : term => `(String.splitOn $s " ")
+--syntax (name := tokenizer) "tokenize " term : term
 -- fails b/c it expands to :: instead  of ++
 --#check (pspec (tokenize "four is even"))
-
+--#print Lean.SyntaxNodeKind
+--#print Lean.Name
+--partial def appList (ss: List String) : Lean.Syntax :=
+--  match ss with
+--  | s::[] => Lean.Syntax.mkApp (Lean.Syntax.mkNameLit "List.app") #[ Lean.Syntax.mkStrLit s, Lean.Syntax.mkNameLit "List.nil" ]
+--  | s::ss2 => Lean.Syntax.mkApp (Lean.Syntax.mkNameLit "List.app") #[Lean.Syntax.mkStrLit s, appList ss2 ]
+--macro "tokenize" s:term : term => `(appList (String.splitOn ($s) " "))
+--@[termElab tokenizer] def expandTokenization : TermElab --Syntax -> ElabM Expr
+--  | `(tokenize $s) => return appList (String.splitOn $s " ")
+--
 --instance SynthCons2App (P:Type u){s s2 ss c}[fixed:Synth P ([s] ++ (s2 :: ss)) c] : Synth P (s :: s2 :: ss) c where
 --  denotation := fixed.denotation
---#check (pspec (tokenize "four is even"))
+--set_option trace.Elab.definition true in
+--theorem test (syn:Synth Prop (["four"]++(["is"]++["even"])) S) : Synth Prop (tokenize "four is even") S :=
+--  by apply SynthCons2App
+----#check (pspec (tokenize "four is even"))
 
 
+-- This is the absolute simplest morphism between lexicons
+instance SynthMorphBase (P:Type u)[ph:HeytingAlgebra P](t:List String)(psem:Synth P t S)(Q:Type v)[qh:HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where
+  denotation := ham.morph psem.denotation
+-- Marginally more interesting; weird b/c I had to constrain the HAs to be in the same universe
+--instance SynthMorphADJ (T:Type u)(P:Type u)[ph:HeytingAlgebra P](t:List String)(psem:Synth P t (@ADJ T))(Q:Type u)[qh:HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
+--  denotation := λ x => ham.morph (psem.denotation x)
+--
 
-
-
-
-
-def StateFormula (T : Type u) := T -> Prop
-
-instance StateFormulatHeyting (T : Type u): HeytingAlgebra (StateFormula T) := pointwiseHA T Prop
-
-namespace ltl
-  inductive LTLFormula (T : Type u) where
-    | true : LTLFormula T
-    | false : LTLFormula T
-    | stateProp : StateFormula T -> LTLFormula T
-    | not : LTLFormula T -> LTLFormula T
-    | next : LTLFormula T -> LTLFormula T
-    | or : LTLFormula T -> LTLFormula T -> LTLFormula T
-    -- "until" is a reserved keyword in Lean
-    | unt : LTLFormula T -> LTLFormula T -> LTLFormula T
-  -- Convenient shorthands for outside this namespace
-  def true {T : Type u} : LTLFormula T := LTLFormula.true
-  def false {T : Type u} : LTLFormula T := LTLFormula.false
-  def or {T : Type u} : LTLFormula T -> LTLFormula T -> LTLFormula T:= LTLFormula.or
-  def unt {T : Type u} : LTLFormula T -> LTLFormula T -> LTLFormula T:= LTLFormula.unt
-  def next {T : Type u} : LTLFormula T -> LTLFormula T:= LTLFormula.next
-  def not {T : Type u} : LTLFormula T -> LTLFormula T:= LTLFormula.not
-  
-  -- LTL is typically classical, so these are derived in the classic way
-  def and {T : Type u} (a b : LTLFormula T) : LTLFormula T :=
-    LTLFormula.not (LTLFormula.or (LTLFormula.not a) (LTLFormula.not b))
-  def impl {T : Type u} (a b : LTLFormula T) : LTLFormula T :=
-    LTLFormula.or (LTLFormula.not a) b
-  -- other derived forms
-  -- "finally" is a reserved keyword
-  def final {T : Type u} (a : LTLFormula T) : LTLFormula T :=
-    LTLFormula.unt LTLFormula.true a
-  -- TODO: G(lobally)
-  
-end ltl
-
-namespace ctlstar
-  mutual
-    inductive CTLStarFormula (T : Type u) where
-      | false
-      | true
-      | stateProp : StateFormula T -> CTLStarFormula T
-      | not : CTLStarFormula T -> CTLStarFormula T
-      | or : CTLStarFormula T -> CTLStarFormula T -> CTLStarFormula T
-      | A : CTLPathFormula T -> CTLStarFormula T
-      | E : CTLPathFormula T -> CTLStarFormula T
-    inductive CTLPathFormula (T : Type u) where
-      | starformula : CTLStarFormula T -> CTLPathFormula T
-      | not : CTLPathFormula T -> CTLPathFormula T
-      | or : CTLPathFormula T -> CTLPathFormula T -> CTLPathFormula T
-      | X : CTLPathFormula T -> CTLPathFormula T
-      | F : CTLPathFormula T -> CTLPathFormula T
-      | G : CTLPathFormula T -> CTLPathFormula T
-      | U : CTLPathFormula T -> CTLPathFormula T -> CTLPathFormula T
-    end
-
-  def and {T : Type u} (a b : CTLStarFormula T) : CTLStarFormula T :=
-    CTLStarFormula.not (CTLStarFormula.or (CTLStarFormula.not a) (CTLStarFormula.not b))
-  def impl {T : Type u} (a b : CTLStarFormula T) : CTLStarFormula T :=
-    CTLStarFormula.or (CTLStarFormula.not a) b
-
-end ctlstar
-
-namespace ctl
-  inductive CTLFormula (T : Type u) where
-    | false
-    | true
-    | stateProp : StateFormula T -> CTLFormula T
-    | not : CTLFormula T -> CTLFormula T
-    | or : CTLFormula T -> CTLFormula T -> CTLFormula T
-    | EG : CTLFormula T -> CTLFormula T
-    | EU : CTLFormula T -> CTLFormula T
-    | EX : CTLFormula T -> CTLFormula T
-    | AG : CTLFormula T -> CTLFormula T
-    | AU : CTLFormula T -> CTLFormula T
-    | AX : CTLFormula T -> CTLFormula T
-  def and {T : Type u} (a b : CTLFormula T) : CTLFormula T :=
-    CTLFormula.not (CTLFormula.or (CTLFormula.not a) (CTLFormula.not b))
-  def impl {T : Type u} (a b : CTLFormula T) : CTLFormula T :=
-    CTLFormula.or (CTLFormula.not a) b
-end ctl
-
-instance LTLHeyting (T : Type u) : HeytingAlgebra (ltl.LTLFormula T) where
-  top := ltl.true
-  bottom := ltl.false
-  conj := ltl.and
-  disj := ltl.or
-  impl := ltl.impl
-
-instance CTLHeyting (T : Type u) : HeytingAlgebra (ctl.CTLFormula T) where
-  top := ctl.CTLFormula.true
-  bottom := ctl.CTLFormula.false
-  disj := ctl.CTLFormula.or
-  conj := ctl.and
-  impl := ctl.impl
-
-instance CTLStarHeyting (T : Type u) : HeytingAlgebra (ctlstar.CTLStarFormula T) where
-  top := ctlstar.CTLStarFormula.true
-  bottom := ctlstar.CTLStarFormula.false
-  disj := ctlstar.CTLStarFormula.or
-  conj := ctlstar.and
-  impl := ctlstar.impl
-
-def ctl_to_ctlstar {T : Type u} (x : ctl.CTLFormula T) : ctlstar.CTLStarFormula T :=
-  match x with
-  | ctl.CTLFormula.false => ctlstar.CTLStarFormula.false
-  | ctl.CTLFormula.true => ctlstar.CTLStarFormula.true
-  | ctl.CTLFormula.or a b => ctlstar.CTLStarFormula.or (ctl_to_ctlstar a) (ctl_to_ctlstar b)
-  | ctl.CTLFormula.not a => ctlstar.CTLStarFormula.not (ctl_to_ctlstar a)
-  | ctl.CTLFormula.stateProp p => ctlstar.CTLStarFormula.stateProp p
-  | ctl.CTLFormula.AX a => ctlstar.CTLStarFormula.A (ctlstar.CTLPathFormula.X (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
-  | ctl.CTLFormula.AU a => ctlstar.CTLStarFormula.A (ctlstar.CTLPathFormula.U (ctlstar.CTLPathFormula.starformula ctlstar.CTLStarFormula.true) (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
-  | ctl.CTLFormula.AG a => ctlstar.CTLStarFormula.A (ctlstar.CTLPathFormula.G (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
-  | ctl.CTLFormula.EX a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.X (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
-  | ctl.CTLFormula.EU a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.U (ctlstar.CTLPathFormula.starformula ctlstar.CTLStarFormula.true) (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
-  | ctl.CTLFormula.EG a => ctlstar.CTLStarFormula.E (ctlstar.CTLPathFormula.G (ctlstar.CTLPathFormula.starformula (ctl_to_ctlstar a)))
-
--- HA Morphisms
-
--- CTL -> CTL*
-instance CTLStarMorphism (T : Type u) : HeytingAlgebraMorphism (ctl.CTLFormula T) (ctlstar.CTLStarFormula T) where
-  morph := ctl_to_ctlstar
-
--- State formulas -> LTL & CTL
-instance ltl_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ltl.LTLFormula T) where
-  morph := ltl.LTLFormula.stateProp
-instance ctl_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ctl.CTLFormula T) where
-  morph := ctl.CTLFormula.stateProp
-
--- State formulas -> CTL* by way of CTL
-instance ctl_star_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ctlstar.CTLStarFormula T) where
-  morph := HeytingAlgebraMorphism.morph ∘ (@HeytingAlgebraMorphism.morph (StateFormula T) (StateFormulatHeyting T) (ctl.CTLFormula T) (CTLHeyting T) (ctl_state T))
-
-
--- Additional specs
-
-def ltlspec (T : Type u) (l:List String) [sem:Synth (ltl.LTLFormula T) l S] : (ltl.LTLFormula T) :=
-  sem.denotation
-def ctlspec (T : Type u) (l:List String) [sem:Synth (ctl.CTLFormula T) l S] : (ctl.CTLFormula T) :=
-  sem.denotation
-def ctlstarspec (T : Type u) (l:List String) [sem:Synth (ctlstar.CTLStarFormula T) l S] : (ctlstar.CTLStarFormula T) :=
-  sem.denotation

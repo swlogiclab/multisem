@@ -9,6 +9,12 @@ open Lake DSL
 --  }]
 --  defaultFacet := PackageFacet.oleans
 --}
-package multisem {
-  defaultFacet := PackageFacet.oleans
-}
+
+--package multisem {
+--  defaultFacet := PackageFacet.oleans
+--}
+
+package multisem
+
+@[defaultTarget]
+lean_lib Multisem
