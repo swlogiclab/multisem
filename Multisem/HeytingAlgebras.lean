@@ -30,6 +30,9 @@ instance pointwiseHA (X : Type v)(H : Type u)[HeytingAlgebra H] : HeytingAlgebra
   disj x y := λ p => HeytingAlgebra.disj (x p) (y p)
   impl x y := λ p => HeytingAlgebra.impl (x p) (y p)
 
+instance pointwise_lift (X : Type v)(H : Type u)[HeytingAlgebra H] : HeytingAlgebraMorphism H (X -> H) where
+  morph := λ h _ => h 
+
 instance pointwiseHALaws (X : Type v)(H : Type u)[HeytingAlgebraLaws H] : HeytingAlgebraLaws (X -> H) where
   top := λ_ => HeytingAlgebra.top
   bottom := λ_ => HeytingAlgebra.bottom

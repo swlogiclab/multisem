@@ -39,6 +39,11 @@ class SurfaceHeytingAlgebra (P:Type u) (n:Nat) (C:Cat) where
 
 
 -- TODO: Study how to rework combineProps in terms of pointwise lifting
+-- These aren't quite homomorphisms. We're not being asked to embed,
+-- e.g., a conjunction of Ps into X->P. We're being asked to use
+-- the ability to conjoin Ps to conjoin X->Ps.
+-- This isn't quite the (pointwise lifting) homomorphism, but instead
+-- an embedding of the operation itself rather than the *result* of the operation
 
 instance ADJHeytingAlgebra (P:Type u)[HeytingAlgebra P]{T}{n} : SurfaceHeytingAlgebra P n (@ADJ T) where
   combineProps op d1 d2 := fun x => op (d1 x) (d2 x)
@@ -251,6 +256,22 @@ theorem exmisc : three_is_nonnegative_and_four_is_even :=
      . simp; rfl
 
 def every_natural_is_nonneg_and_some_natural_is_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["some"] ++ (["natural"] ++ (["is"] ++ ["even"])))))))))
+
+def every_natural_is_nonneg_and_is_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["is"] ++ ["even"])))))))
+theorem exmisc2 : every_natural_is_nonneg_and_is_even :=
+  by 
+     intro n
+     apply And.intro
+     . simp [every_natural_is_nonneg_and_is_even, pspec, Synth.denotation, lexicon.denotation, SurfaceHeytingAlgebra.combineProps, Coordinator.denoteCoord, HeytingAlgebra.conj]
+     . simp [every_natural_is_nonneg_and_is_even, pspec, Synth.denotation, lexicon.denotation, SurfaceHeytingAlgebra.combineProps, Coordinator.denoteCoord, HeytingAlgebra.conj]
+       sorry
+#print exmisc2
+
+theorem exmisc3 : every_natural_is_nonneg_and_is_even :=
+  by 
+     simp [every_natural_is_nonneg_and_is_even, pspec, Synth.denotation, lexicon.denotation, SurfaceHeytingAlgebra.combineProps, Coordinator.denoteCoord, HeytingAlgebra.conj]
+     sorry
+#print exmisc3 -- this ordering results in some very weird unfolding, but does actually prove the right thing.
 
 def every_natural_is_odd_or_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["odd"] ++ (["or"] ++ ["even"]))))))
 
