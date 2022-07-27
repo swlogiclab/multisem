@@ -44,6 +44,13 @@ class SurfaceHeytingAlgebra (P:Type u) (n:Nat) (C:Cat) where
 -- the ability to conjoin Ps to conjoin X->Ps.
 -- This isn't quite the (pointwise lifting) homomorphism, but instead
 -- an embedding of the operation itself rather than the *result* of the operation
+-- Are we dealing with a kind of adjunction between P and X->P? Maybe, but
+-- while one direction of such an adjunction would certainly be the 
+-- pointwise lifting, the other direction seems like it can't be defined 
+-- without a spare X lying around, so it's not an adjunction.
+-- And the partial adjunction that just maps ```λ_.h``` to h isn't related to this lifting. The solution is constrained by a kind of type-driven translation, but that's not an algebraic characterization of the resulting transformation.
+
+-- But actually, the combineprops of both the ADJ and both slash cases are in fact following the template of the pointwise HA lifting, just with the concrete operation abstracted out!
 
 instance ADJHeytingAlgebra (P:Type u)[HeytingAlgebra P]{T}{n} : SurfaceHeytingAlgebra P n (@ADJ T) where
   combineProps op d1 d2 := fun x => op (d1 x) (d2 x)
