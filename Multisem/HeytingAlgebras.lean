@@ -4,6 +4,11 @@ class HeytingAlgebra (P:Type u) where
   conj : P -> P -> P
   disj : P -> P -> P
   impl : P -> P -> P
+attribute [simp] HeytingAlgebra.top
+attribute [simp] HeytingAlgebra.bottom
+attribute [simp] HeytingAlgebra.conj
+attribute [simp] HeytingAlgebra.disj
+attribute [simp] HeytingAlgebra.impl
 class HeytingAlgebraLaws (P : Type u) extends HeytingAlgebra P where
   conj_comm : ∀ x y, conj x y = conj y x
   conj_assoc : ∀ x y z, conj (conj x y) z = conj x (conj y z)

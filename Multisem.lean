@@ -1,4 +1,5 @@
 import Multisem.HeytingAlgebras
+import Multisem.TemporalLogic
 
 universe u v t
 
@@ -22,6 +23,7 @@ def polyunit.{α} : Type α := ULift Unit
 def pu.{α} : polyunit.{α} := ULift.up ()
 
 -- We do Lambek-style interpretation of lslash
+@[simp]
 def interp (P:Type u) (c:Cat) : Type u :=
   match c with
   | S => P
@@ -33,9 +35,11 @@ def interp (P:Type u) (c:Cat) : Type u :=
 
 class Coordinator (P:Type u)[HeytingAlgebra P](w:String) where
   denoteCoord : P -> P -> P
+attribute [simp] Coordinator.denoteCoord
 
 class SurfaceHeytingAlgebra (P:Type u) (n:Nat) (C:Cat) where
   combineProps : (P -> P -> P) -> interp P C -> interp P C -> interp P C
+attribute [simp] SurfaceHeytingAlgebra.combineProps
 
 
 -- TODO: Study how to rework combineProps in terms of pointwise lifting
@@ -66,6 +70,7 @@ instance rSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[Su
 
 class lexicon (P : Type u) (w:String) (c:Cat) :=
   { denotation : interp P c }
+attribute [simp] lexicon.denotation
 
 
 instance coordLexicon (P:Type)[HeytingAlgebra P](w:String) (C:Cat)[Coordinator P w][SurfaceHeytingAlgebra P (Nat.succ (Nat.succ (Nat.succ Nat.zero))) C] : lexicon P w (lslash C (rslash C C)) where
@@ -75,6 +80,8 @@ instance coordLexicon (P:Type)[HeytingAlgebra P](w:String) (C:Cat)[Coordinator P
 
 class Synth (P:Type u)(ws:List String) (c:Cat) where
   denotation : interp P c
+attribute [simp] Synth.denotation
+
 instance SynthLex (P:Type u){w:String}{C:Cat}[lexicon P w C] : Synth P (List.cons w List.nil) C where
   denotation := lexicon.denotation w
 instance SynthRApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 (rslash c1 c2)][Synth P s2 c2] : Synth P (s1++s2) c1 where
@@ -99,8 +106,10 @@ instance LComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (lslash c1 c2)][R:Synth P s
 -- TODO: Need to add type raising!
 
 
+@[simp]
 def dbgspec (l:List String) (C:Cat) [sem:Synth Prop l C] : interp Prop C :=
   sem.denotation
+@[simp]
 def pspec (l:List String) [HeytingAlgebra Prop][sem:Synth Prop l S] : Prop :=
   sem.denotation
 
@@ -254,32 +263,25 @@ def some_natural_is_nonnegative := (pspec (["some"] ++ (["natural"] ++ (["is"] +
 def some_natural_is_even := (pspec (["some"] ++ (["natural"] ++ (["is"] ++ ["even"]))))
 
 def four_is_even_and_nonnegative := (pspec (["four"] ++ (["is"] ++ (["even"] ++ (["and"] ++ ["non-negative"])))))
+@[simp]
 def three_is_nonnegative_and_four_is_even := (pspec (["three"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["four"] ++ (["is"] ++ (["even"]))))))))
 
 theorem exmisc : three_is_nonnegative_and_four_is_even :=
   by simp
-     apply And.intro
-     . simp; sorry
-     . simp; rfl
 
+@[simp]
 def every_natural_is_nonneg_and_some_natural_is_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["some"] ++ (["natural"] ++ (["is"] ++ ["even"])))))))))
+theorem exmisc3 : every_natural_is_nonneg_and_some_natural_is_even :=
+  by simp
+     apply (Exists.intro 2); simp
 
-def every_natural_is_nonneg_and_is_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["is"] ++ ["even"])))))))
-theorem exmisc2 : every_natural_is_nonneg_and_is_even :=
-  by 
-     intro n
-     apply And.intro
-     . simp [every_natural_is_nonneg_and_is_even, pspec, Synth.denotation, lexicon.denotation, SurfaceHeytingAlgebra.combineProps, Coordinator.denoteCoord, HeytingAlgebra.conj]
-     . simp [every_natural_is_nonneg_and_is_even, pspec, Synth.denotation, lexicon.denotation, SurfaceHeytingAlgebra.combineProps, Coordinator.denoteCoord, HeytingAlgebra.conj]
-       sorry
-#print exmisc2
+@[simp]
+def every_natural_is_nonneg_and_nonneg := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["is"] ++ ["non-negative"])))))))
+theorem exmisc2 : every_natural_is_nonneg_and_nonneg :=
+  by simp
 
-theorem exmisc3 : every_natural_is_nonneg_and_is_even :=
-  by 
-     simp [every_natural_is_nonneg_and_is_even, pspec, Synth.denotation, lexicon.denotation, SurfaceHeytingAlgebra.combineProps, Coordinator.denoteCoord, HeytingAlgebra.conj]
-     sorry
-#print exmisc3 -- this ordering results in some very weird unfolding, but does actually prove the right thing.
 
+@[simp]
 def every_natural_is_odd_or_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["odd"] ++ (["or"] ++ ["even"]))))))
 
 
@@ -315,3 +317,19 @@ instance SynthMorphADJ (T:Type u)(P:Type u)[HeytingAlgebra P](t:List String)(pse
   denotation := λ x => ham.morph (psem.denotation _ x)
 --
 
+-- Additional specs
+
+def ltlspec (T : Type u) (l:List String) [sem:Synth (ltl.LTLFormula T) l S] : (ltl.LTLFormula T) :=
+  sem.denotation
+def ctlspec (T : Type u) (l:List String) [sem:Synth (ctl.CTLFormula T) l S] : (ctl.CTLFormula T) :=
+  sem.denotation
+def ctlstarspec (T : Type u) (l:List String) [sem:Synth (ctlstar.CTLStarFormula T) l S] : (ctlstar.CTLStarFormula T) :=
+  sem.denotation
+
+-- some longer-running examples
+--set_option synthInstance.maxHeartbeats 400000
+--set_option maxHeartbeats 400000
+--@[simp]
+--def every_natural_is_nonneg_and_even_or_odd := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["is"] ++ (["even"]++(["or"]++["odd"])))))))))
+--theorem misc4 : every_natural_is_nonneg_and_even_or_odd :=
+--  by simp

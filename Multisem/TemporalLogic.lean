@@ -131,13 +131,3 @@ instance ctl_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ctl.C
 -- State formulas -> CTL* by way of CTL
 instance ctl_star_state (T : Type u) : HeytingAlgebraMorphism (StateFormula T) (ctlstar.CTLStarFormula T) where
   morph := HeytingAlgebraMorphism.morph ∘ (@HeytingAlgebraMorphism.morph (StateFormula T) (StateFormulatHeyting T) (ctl.CTLFormula T) (CTLHeyting T) (ctl_state T))
-
-
--- Additional specs
-
-def ltlspec (T : Type u) (l:List String) [sem:Synth (ltl.LTLFormula T) l S] : (ltl.LTLFormula T) :=
-  sem.denotation
-def ctlspec (T : Type u) (l:List String) [sem:Synth (ctl.CTLFormula T) l S] : (ctl.CTLFormula T) :=
-  sem.denotation
-def ctlstarspec (T : Type u) (l:List String) [sem:Synth (ctlstar.CTLStarFormula T) l S] : (ctlstar.CTLStarFormula T) :=
-  sem.denotation
