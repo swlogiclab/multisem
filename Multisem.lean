@@ -1,5 +1,6 @@
 import Multisem.HeytingAlgebras
 import Multisem.TemporalLogic
+import Multisem.Text.Macros
 
 universe u v t
 
@@ -78,39 +79,39 @@ instance coordLexicon (P:Type)[HeytingAlgebra P](w:String) (C:Cat)[Coordinator P
 -- We don't need the other associativity, as it can be recovered by shifting
 
 
-class Synth (P:Type u)(ws:List String) (c:Cat) where
+class Synth (P:Type u)(ws:tree String) (c:Cat) where
   denotation : interp P c
 attribute [simp] Synth.denotation
 
-instance SynthLex (P:Type u){w:String}{C:Cat}[lexicon P w C] : Synth P (List.cons w List.nil) C where
+instance SynthLex (P:Type u){w:String}{C:Cat}[lexicon P w C] : Synth P (tree.one w) C where
   denotation := lexicon.denotation w
-instance SynthRApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 (rslash c1 c2)][Synth P s2 c2] : Synth P (s1++s2) c1 where
+instance SynthRApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 (rslash c1 c2)][Synth P s2 c2] : Synth P (s1#s2) c1 where
   denotation := @Synth.denotation P s1 (rslash c1 c2) L (Synth.denotation s2)
-instance SynthLApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 c1][R:Synth P s2 (lslash c1 c2)] : Synth P (s1++s2) c2 where
+instance SynthLApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 c1][R:Synth P s2 (lslash c1 c2)] : Synth P (s1#s2) c2 where
   denotation := R.denotation _ (L.denotation)
 --  denotation := @Synth.denotation P _ _ _ R (Synth.denotation s1)
 
 --instance (priority := default-1000) Reassoc (P:Type u){s1 s2 s3 c}[pre:Synth P (s1 ++ (s2 ++ s3)) c] : Synth P ((s1 ++ s2) ++ s3) c where
 --  denotation := pre.denotation
-instance Reassoc' (P:Type u){s1 s2 s3 c}[pre:Synth P ((s1 ++ s2) ++ s3) c] : Synth P (s1 ++ (s2 ++ s3)) c where
+instance Reassoc' (P:Type u){s1 s2 s3 c}[pre:Synth P ((s1 # s2) # s3) c] : Synth P (s1 # (s2 # s3)) c where
   denotation := pre.denotation
 
 instance SynthShift (P:Type u){s c l r}[L:Synth P s (lslash l (rslash c r))] : Synth P s (rslash (lslash l c) r) where
   denotation xr xl := L.denotation s xl xr
 
-instance RComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (rslash c1 c2)][R:Synth P s' (rslash c2 c3)] : Synth P (s ++ s') (rslash c1 c3) where
+instance RComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (rslash c1 c2)][R:Synth P s' (rslash c2 c3)] : Synth P (s # s') (rslash c1 c3) where
   denotation x := L.denotation _ (R.denotation _ x)
-instance LComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (lslash c1 c2)][R:Synth P s' (lslash c2 c3)] : Synth P (s ++ s') (lslash c1 c3) where
+instance LComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (lslash c1 c2)][R:Synth P s' (lslash c2 c3)] : Synth P (s # s') (lslash c1 c3) where
   denotation x := R.denotation _ (L.denotation _ x)
 
 -- TODO: Need to add type raising!
 
 
 @[simp]
-def dbgspec (l:List String) (C:Cat) [sem:Synth Prop l C] : interp Prop C :=
+def dbgspec (l:tree String) (C:Cat) [sem:Synth Prop l C] : interp Prop C :=
   sem.denotation
 @[simp]
-def pspec (l:List String) [HeytingAlgebra Prop][sem:Synth Prop l S] : Prop :=
+def pspec (l:tree String) [HeytingAlgebra Prop][sem:Synth Prop l S] : Prop :=
   sem.denotation
 
 --
@@ -161,7 +162,7 @@ instance or_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "or" where
 --#check pspec (["one"]++["is"]++["one"])
 --#check pspec (["one"]++["is"]++["odd"])
 --#check pspec ((["one"]++["is"])++["odd"])
-def one_is_odd :=  pspec (["one"]++(["is"]++["odd"]))
+def one_is_odd :=  pspec ("one"#("is"#"odd"))
 
 
 
@@ -174,16 +175,16 @@ def one_is_odd :=  pspec (["one"]++(["is"]++["odd"]))
 instance equals_eq_lex {T}: lexicon Prop "equals" (rslash (lslash (@NP T) S) (@NP T)) where
   denotation := fun r l => r = l 
 
-def one_equals_one := (pspec (["one"] ++ (["equals"] ++ ["one"])))
---def one_is_odd := (pspec (["one"] ++ (["is"] ++ ["odd"])))
-def two_is_even := (pspec (["two"] ++ (["is"] ++ ["even"])))
+def one_equals_one := (pspec ("one" # ("equals" # "one")))
+--def one_is_odd := (pspec ("one" # ("is" # "odd")))
+def two_is_even := (pspec ("two" # ("is" # "even")))
 set_option synthInstance.maxHeartbeats 200000
 set_option maxHeartbeats 200000
-def one_is_odd_and_two_is_even := (pspec (["one"] ++ (["is"] ++ (["odd"] ++ (["and"] ++ (["two"] ++ (["is"] ++ ["even"])))))))
+def one_is_odd_and_two_is_even := (pspec ("one" # ("is" # ("odd" # ("and" # ("two" # ("is" # "even")))))))
 ---- a ha, so the problem is that I'm missing rules to reassociate appropriately...
 ---- ah, okay, was missing a couple structural rules
 ---- but so far, while I haven't added universe polymorphism or sorted the primitives by logical type, this seems way snappier than Coq
-def one_is_odd_and_two_is_even' := (pspec ((["one"] ++ (["is"] ++ ["odd"])) ++ (["and"] ++ (["two"] ++ (["is"] ++ ["even"])))))
+def one_is_odd_and_two_is_even' := (pspec (("one" # ("is" # "odd")) # ("and" # ("two" # ("is" # "even")))))
 --
 --
 --
@@ -246,90 +247,74 @@ instance addonelex : lexicon Prop "addone" (@NP (Nat -> Nat)) where
   denotation := addone 
 instance nonneg_lex : lexicon Prop "non-negative" (@ADJ Nat) where
   denotation := fun x => 0 <= x 
+instance nonneg_lex' : lexicon Prop "nonnegative" (@ADJ Nat) where
+  denotation := fun x => 0 <= x 
 
-def addone_equals_addone := (pspec (["addone"] ++ (["equals"] ++ ["addone"])))
-def addone_is_monotone := (pspec (["addone"] ++ (["is"] ++ ["monotone"])))
-def addone_given_one_is_two := (pspec (["addone"] ++ (["given"] ++ (["one"] ++ (["is"] ++ ["two"])))))
-def addone_given_three_is_four := (pspec (["addone"] ++ (["given"] ++ (["three"] ++ (["is"] ++ ["four"])))))
-def addone_given_three_equals_four := (pspec (["addone"] ++ (["given"] ++ (["three"] ++ (["equals"] ++ ["four"])))))
+def addone_equals_addone := (pspec ("addone" # ("equals" # "addone")))
+def addone_is_monotone := (pspec ("addone" # ("is" # "monotone")))
+def addone_given_one_is_two := (pspec ("addone" # ("given" # ("one" # ("is" # "two")))))
+def addone_given_three_is_four := (pspec ("addone" # ("given" # ("three" # ("is" # "four")))))
+def addone_given_three_equals_four := (pspec ("addone" # ("given" # ("three" # ("equals" # "four")))))
 
---#check dbgspec (["is"] ++ ["non-negative"]) (lslash (@NP Nat) S)
---#check dbgspec ["every"] (quant Nat)
---#check dbgspec ["natural"] (@CN Nat)
---#check dbgspec (["every"]++["natural"]) (rslash (S) (lslash (@NP Nat) S))
+--#check dbgspec ("is" # "non-negative") (lslash (@NP Nat) S)
+--#check dbgspec "every" (quant Nat)
+--#check dbgspec "natural" (@CN Nat)
+--#check dbgspec ("every"#"natural") (rslash (S) (lslash (@NP Nat) S))
 
-def every_natural_is_nonnegative := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ ["non-negative"]))))
-def some_natural_is_nonnegative := (pspec (["some"] ++ (["natural"] ++ (["is"] ++ ["non-negative"]))))
-def some_natural_is_even := (pspec (["some"] ++ (["natural"] ++ (["is"] ++ ["even"]))))
+def every_natural_is_nonnegative := (pspec ("every" # ("natural" # ("is" # "non-negative"))))
+def some_natural_is_nonnegative := (pspec ("some" # ("natural" # ("is" # "non-negative"))))
+def some_natural_is_even := (pspec ("some" # ("natural" # ("is" # "even"))))
 
-def four_is_even_and_nonnegative := (pspec (["four"] ++ (["is"] ++ (["even"] ++ (["and"] ++ ["non-negative"])))))
+def four_is_even_and_nonnegative := (pspec ("four" # ("is" # ("even" # ("and" # "non-negative")))))
 @[simp]
-def three_is_nonnegative_and_four_is_even := (pspec (["three"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["four"] ++ (["is"] ++ (["even"]))))))))
+def three_is_nonnegative_and_four_is_even := (pspec ("three" # ("is" # ("non-negative" # ("and" # ("four" # ("is" # ("even"))))))))
 
 theorem exmisc : three_is_nonnegative_and_four_is_even :=
   by simp
 
 @[simp]
-def every_natural_is_nonneg_and_some_natural_is_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["some"] ++ (["natural"] ++ (["is"] ++ ["even"])))))))))
+def every_natural_is_nonneg_and_some_natural_is_even := (pspec ("every" # ("natural" # ("is" # ("non-negative" # ("and" # ("some" # ("natural" # ("is" # "even")))))))))
 theorem exmisc3 : every_natural_is_nonneg_and_some_natural_is_even :=
   by simp
      apply (Exists.intro 2); simp
 
 @[simp]
-def every_natural_is_nonneg_and_nonneg := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["is"] ++ ["non-negative"])))))))
+def every_natural_is_nonneg_and_nonneg := (pspec ("every" # ("natural" # ("is" # ("non-negative" # ("and" # ("is" # "non-negative")))))))
 theorem exmisc2 : every_natural_is_nonneg_and_nonneg :=
+  by simp
+
+theorem exmisc2' : pspec [| every natural is nonnegative and is nonnegative |] :=
   by simp
 
 
 @[simp]
-def every_natural_is_odd_or_even := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["odd"] ++ (["or"] ++ ["even"]))))))
-
-
-
--- Need to carefully process the Lean 4 metaprogramming book, then ask on Zulip: https://github.com/arthurpaulino/lean4-metaprogramming-book
---set_option trace.Elab.definition true in
---syntax (name := tokenizer) "tokenize " term : term
--- fails b/c it expands to :: instead  of ++
---#check (pspec (tokenize "four is even"))
---#print Lean.SyntaxNodeKind
---#print Lean.Name
---partial def appList (ss: List String) : Lean.Syntax :=
---  match ss with
---  | s::[] => Lean.Syntax.mkApp (Lean.Syntax.mkNameLit "List.app") #[ Lean.Syntax.mkStrLit s, Lean.Syntax.mkNameLit "List.nil" ]
---  | s::ss2 => Lean.Syntax.mkApp (Lean.Syntax.mkNameLit "List.app") #[Lean.Syntax.mkStrLit s, appList ss2 ]
---macro "tokenize" s:term : term => `(appList (String.splitOn ($s) " "))
---@[termElab tokenizer] def expandTokenization : TermElab --Syntax -> ElabM Expr
---  | `(tokenize $s) => return appList (String.splitOn $s " ")
---
---instance SynthCons2App (P:Type u){s s2 ss c}[fixed:Synth P ([s] ++ (s2 :: ss)) c] : Synth P (s :: s2 :: ss) c where
---  denotation := fixed.denotation
---set_option trace.Elab.definition true in
---theorem test (syn:Synth Prop (["four"]++(["is"]++["even"])) S) : Synth Prop (tokenize "four is even") S :=
---  by apply SynthCons2App
-----#check (pspec (tokenize "four is even"))
+def every_natural_is_odd_or_even := (pspec ("every" # ("natural" # ("is" # ("odd" # ("or" # "even"))))))
 
 
 -- This is the absolute simplest morphism between lexicons
-instance SynthMorphBase (P:Type u)[HeytingAlgebra P](t:List String)(psem:Synth P t S)(Q:Type v)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where
+instance SynthMorphBase (P:Type u)[HeytingAlgebra P](t:tree String)(psem:Synth P t S)(Q:Type v)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where
   denotation := ham.morph psem.denotation
 -- Marginally more interesting; weird b/c I had to constrain the HAs to be in the same universe
-instance SynthMorphADJ (T:Type u)(P:Type u)[HeytingAlgebra P](t:List String)(psem:Synth P t (@ADJ T))(Q:Type u)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
+instance SynthMorphADJ (T:Type u)(P:Type u)[HeytingAlgebra P](t:tree String)(psem:Synth P t (@ADJ T))(Q:Type u)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
   denotation := λ x => ham.morph (psem.denotation _ x)
 --
 
--- Additional specs
+-- Additional spec types
 
-def ltlspec (T : Type u) (l:List String) [sem:Synth (ltl.LTLFormula T) l S] : (ltl.LTLFormula T) :=
+def ltlspec (T : Type u) (l:tree String) [sem:Synth (ltl.LTLFormula T) l S] : (ltl.LTLFormula T) :=
   sem.denotation
-def ctlspec (T : Type u) (l:List String) [sem:Synth (ctl.CTLFormula T) l S] : (ctl.CTLFormula T) :=
+def ctlspec (T : Type u) (l:tree String) [sem:Synth (ctl.CTLFormula T) l S] : (ctl.CTLFormula T) :=
   sem.denotation
-def ctlstarspec (T : Type u) (l:List String) [sem:Synth (ctlstar.CTLStarFormula T) l S] : (ctlstar.CTLStarFormula T) :=
+def ctlstarspec (T : Type u) (l:tree String) [sem:Synth (ctlstar.CTLStarFormula T) l S] : (ctlstar.CTLStarFormula T) :=
   sem.denotation
 
 -- some longer-running examples
---set_option synthInstance.maxHeartbeats 400000
---set_option maxHeartbeats 400000
+-- I swear this finished for 400K when working with strings, but now it seems to time out. I appreciate that the search limit is in heartbeats, not in search depth, so the knob isn't exponential, though.
+--set_option synthInstance.maxHeartbeats 800000
+--set_option maxHeartbeats 800000
+--theorem misc4 : pspec [| every natural is nonnegative and is even or odd |] :=
+--  by simp
 --@[simp]
---def every_natural_is_nonneg_and_even_or_odd := (pspec (["every"] ++ (["natural"] ++ (["is"] ++ (["non-negative"] ++ (["and"] ++ (["is"] ++ (["even"]++(["or"]++["odd"])))))))))
+--def every_natural_is_nonneg_and_even_or_odd := (pspec ("every" # ("natural" # ("is" # ("non-negative" # ("and" # ("is" # ("even"#("or"#"odd")))))))))
 --theorem misc4 : every_natural_is_nonneg_and_even_or_odd :=
 --  by simp
