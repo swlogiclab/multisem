@@ -1,3 +1,4 @@
+import Init.Data.Nat
 import Multisem.HeytingAlgebras
 import Multisem.TemporalLogic
 import Multisem.Text.Macros
@@ -75,6 +76,17 @@ def addone_given_one_is_two := (pspec ("addone" # ("given" # ("one" # ("is" # "t
 def addone_given_three_is_four := (pspec ("addone" # ("given" # ("three" # ("is" # "four")))))
 def addone_given_three_equals_four := (pspec ("addone" # ("given" # ("three" # ("equals" # "four")))))
 
+def addone_mono : pspec [|addone is monotone|] :=
+  by -- ⊢ pspec (tree.one "addone"#tree.one "is"#tree.one "monotone")
+     simp
+     -- ⊢ ∀ (x y : Nat), x ≤ y → addone x ≤ addone y
+     intro x y h
+     simp [addone]
+     sorry
+     -- Not clear why I can't access these lemmas
+     --apply Init.Data.Nat.add_le_add
+     --apply Init.Data.Nat.add_le_add_right
+
 --#check dbgspec ("is" # "non-negative") (lslash (@NP Nat) S)
 --#check dbgspec "every" (quant Nat)
 --#check dbgspec "natural" (@CN Nat)
@@ -111,7 +123,8 @@ theorem exmisc2' : pspec [| every natural is nonnegative and is nonnegative |] :
 
 @[simp]
 def every_natural_is_odd_or_even := (pspec ("every" # ("natural" # ("is" # ("odd" # ("or" # "even"))))))
-
+@[simp]
+def every_natural_is_odd_or_even3 := (pspec ("every" # ("natural" # ("is" # ("odd" # ("or" # "even"))))))
 
 -- This is the absolute simplest morphism between lexicons
 instance SynthMorphBase (P:Type u)[HeytingAlgebra P](t:tree String)(psem:Synth P t S)(Q:Type v)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where

@@ -113,3 +113,30 @@ def dbgspec (l:tree String) (C:Cat) [sem:Synth Prop l C] : interp Prop C :=
 @[simp]
 def pspec (l:tree String) [HeytingAlgebra Prop][sem:Synth Prop l S] : Prop :=
   sem.denotation
+
+
+-- TODO: Name the lexicon instances introduced with this macro
+-- TODO: Allow the macro to enter arbitrary expressions (makes naming harder)
+-- TODO: Add support for HA-polymorphic lexicon entries at all levels (currently we only get Type)
+
+-- For now, this will do. It's not ideal because the instance is unnamed, which will make some things harder to debug when stuff goes wrong, but this is a workable solution in the medium-term
+macro "lex" n:ident "for" P:term "as" c:term : command => 
+  let s := n.getId.toString
+  -- This id has type Lean.Ident (no surprise given the construtor), but splicing it in as the instance name with $(id) calls .raw, which requires
+  -- an argument of type Lean.TSyntax `Lean.Parser.Command.namedPrio
+  -- Need to read more of the metaprogramming book https://github.com/arthurpaulino/lean4-metaprogramming-book to figure this out
+  let id := (Lean.mkIdent (s ++ "_lex_"))
+`(
+  instance : lexicon $(P) $(Lean.quote s) $(c) := { denotation := $(n) }
+)
+macro "anylex" n:ident "as" c:term : command => 
+  let s := n.getId.toString
+`(
+  instance {T : Type}[HA:HeytingAlgebra T]: lexicon T $(Lean.quote s) $(c) := { denotation := $(n) }
+)
+
+-- One other possible limitation of this macro is that it only enters identifier-bound entities, so you can't directly register 15. But this is nicer that manually specifying 
+def fifteen : Nat := 15
+lex fifteen for Prop as @Cat.NP Nat
+
+anylex fifteen as @Cat.NP Nat
