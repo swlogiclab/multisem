@@ -105,6 +105,9 @@ theorem exmisc2 : every_natural_is_nonneg_and_nonneg :=
 theorem exmisc2' : pspec [| every natural is nonnegative and is nonnegative |] :=
   by simp
 
+-- This needs a higher timeout
+--theorem exmisc3' : pspec [| every natural is nonnegative and is odd or even |] :=
+--  by simp
 
 @[simp]
 def every_natural_is_odd_or_even := (pspec ("every" # ("natural" # ("is" # ("odd" # ("or" # "even"))))))
