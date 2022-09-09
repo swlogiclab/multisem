@@ -32,6 +32,7 @@ instance equals_eq_lex {T}: lexicon Prop "equals" (rslash (lslash (@NP T) S) (@N
 def one_equals_one := (pspec ("one" # ("equals" # "one")))
 --def one_is_odd := (pspec ("one" # ("is" # "odd")))
 def two_is_even := (pspec ("two" # ("is" # "even")))
+#eval (specwitness Prop [|two is even|])
 set_option synthInstance.maxHeartbeats 200000
 set_option maxHeartbeats 200000
 def one_is_odd_and_two_is_even := (pspec ("one" # ("is" # ("odd" # ("and" # ("two" # ("is" # "even")))))))
@@ -129,9 +130,11 @@ def every_natural_is_odd_or_even3 := (pspec ("every" # ("natural" # ("is" # ("od
 -- This is the absolute simplest morphism between lexicons
 instance SynthMorphBase (P:Type u)[HeytingAlgebra P](t:tree String)(psem:Synth P t S)(Q:Type v)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where
   denotation := ham.morph psem.denotation
+  stringRep := "(morphbase "++psem.stringRep++")"
 -- Marginally more interesting; weird b/c I had to constrain the HAs to be in the same universe
 instance SynthMorphADJ (T:Type u)(P:Type u)[HeytingAlgebra P](t:tree String)(psem:Synth P t (@ADJ T))(Q:Type u)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
   denotation := λ x => ham.morph (psem.denotation _ x)
+  stringRep := "(morphadj "++psem.stringRep++")"
 --
 
 -- Additional spec types

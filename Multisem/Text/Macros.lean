@@ -8,6 +8,7 @@ inductive tree (A:Type) where
 instance {A:Type} : Coe A (tree A) where
   coe a := tree.one a
 notation:64 x "#" y => tree.comp x y
+deriving instance Repr for tree
 
 def buildAppend (stx: Lean.Syntax) (l:List Lean.Syntax) : Lean.MacroM (Lean.TSyntax `term) :=
   match l with
