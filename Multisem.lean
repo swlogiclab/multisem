@@ -32,7 +32,10 @@ instance equals_eq_lex {T}: lexicon Prop "equals" (rslash (lslash (@NP T) S) (@N
 def one_equals_one := (pspec ("one" # ("equals" # "one")))
 --def one_is_odd := (pspec ("one" # ("is" # "odd")))
 def two_is_even := (pspec ("two" # ("is" # "even")))
+
+-- This essentially pretty-prints. The example from the paper is based on manually extracting the interactive proof mode render
 #eval (specwitness Prop [|two is even|])
+
 set_option synthInstance.maxHeartbeats 200000
 set_option maxHeartbeats 200000
 def one_is_odd_and_two_is_even := (pspec ("one" # ("is" # ("odd" # ("and" # ("two" # ("is" # "even")))))))
