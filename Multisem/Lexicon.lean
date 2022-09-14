@@ -74,3 +74,16 @@ instance nonneg_lex : lexicon Prop "non-negative" (@ADJ Nat) where
   denotation := fun x => 0 <= x 
 instance nonneg_lex' : lexicon Prop "nonnegative" (@ADJ Nat) where
   denotation := fun x => 0 <= x 
+
+
+-- Prepositional phrases
+instance of_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "of" (rslash (@PP T PPType.OF) (@NP T)) where
+  denotation := fun x => x
+instance to_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "to" (rslash (@PP T PPType.TO) (@NP T)) where
+  denotation := fun x => x
+instance from_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "from" (rslash (@PP T PPType.FROM) (@NP T)) where
+  denotation := fun x => x
+instance in_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "in" (rslash (@PP T PPType.IN) (@NP T)) where
+  denotation := fun x => x
+instance into_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "into" (rslash (@PP T PPType.INTO) (@NP T)) where
+  denotation := fun x => x

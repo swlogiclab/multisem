@@ -4,16 +4,21 @@ import Multisem.Text.Macros
 
 universe u v t
 
+inductive PPType : Type := | IN | INTO | TO | FROM | OF
+deriving instance Repr for PPType
+
 -- We're going to go full traditional CCG here
 inductive Cat : Type (u+1)  :=
 | S : Cat
 | NP : forall {x:Type u}, Cat
 | ADJ : forall {x:Type u}, Cat
 | CN : forall {x:Type u}, Cat
+| PP : forall {x:Type u}, PPType -> Cat
 | rslash : Cat  -> Cat  -> Cat 
 | lslash : Cat  -> Cat  -> Cat 
 open Cat
 
+-- This deriving breaks if any of the category instances are explicit arguments
 deriving instance Repr for Cat
 #eval reprPrec (rslash (lslash S S) S) 234
 #eval (rslash (lslash S S) S)
@@ -37,6 +42,8 @@ def interp (P:Type u) (c:Cat) : Type u :=
   | rslash a b => interp P b -> interp P a
   | lslash a b => interp P a -> interp P b
   | CN => polyunit
+  -- The variety of prepositional phrase has not semantic content, they're basically syntactic tags for disambiguation
+  | @PP x _ => x
 
 class Coordinator (P:Type u)[HeytingAlgebra P](w:String) where
   denoteCoord : P -> P -> P
