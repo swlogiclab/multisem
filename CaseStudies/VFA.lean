@@ -1,4 +1,3 @@
-
 import Multisem.Text.Macros
 import Multisem.Lexicon
 
@@ -181,15 +180,148 @@ section searchtree
 
   def uncurry {X Y Z : Type u} (f : X → Y → Z) (ab: X × Y) :=
   f (ab.fst) (ab.snd)
+
+  -- Implement Coq's List.Forall for this? Need something like List.all but for Prop, all is for Bool
+  def Forall {T : Type u} (P : T -> Prop) (l : List T) : Prop :=
+    ∀ t, List.Mem t l -> P t
+
   -- Prove that if a property P holds of every node in a tree t, then that property holds of every pair in elements t. 
   def elements_preserves_forall_spec := ∀ (V : Type) (P : key → V → Prop) (t : @vfatree V),
     ForallT P t →
-    -- TODO: implement Coq's List.Forall for this? Need something like List.all but for Prop, all is for Bool
-    List.all (elements t)  (uncurry P)
+    Forall  (uncurry P)  (elements t)
 
-  -- TODO: A Faster elements Implementation
-  -- TODO: An Algebraic Specification of elements
-  -- TODO: Model-based Specifications
+  -- Prove that if all the keys in t are in a relation R with a distinguished key k', then any key k in elements t is also related by R to k'
+  def elements_preserves_relation_spec :=
+  ∀ (V : Type) (k k' : key) (v : V) (t : @vfatree V) (R : key → key → Prop),
+    ForallT (fun y _ => R y k') t
+    → List.Mem (k, v) (elements t)
+    → R k k'
+
+  -- No explicit English
+  def elements_complete_inverse_spec :=
+  ∀ (V : Type) (k : key) (v : V) (t : @vfatree V),
+    BST t →
+    bound k t = false →
+    ¬ List.Mem (k, v) (elements t)
+
+  -- "Prove the inverse"
+  def bound_value_spec := ∀ (V : Type) (k : key) (t : @vfatree V),
+    bound k t = true → ∃ v, ∀ d, lookup d k t = v
+
+  -- "Prove the main result"
+  def elements_correct_inverse_spec :=
+  ∀ (V : Type) (k : key) (t : @vfatree V),
+    (∀ v, ¬ List.Mem (k, v) (elements t)) →
+    bound k t = false
+
+  -- Prove that inserting an intermediate value between two lists maintains sortedness
+  def sorted_app_spec := ∀ l1 l2 x,
+  sort.sorted l1 → sort.sorted l2 →
+  Forall (fun n => n < x) l1 → Forall (fun n => n > x) l2 →
+  sort.sorted (l1 ++ x :: l2)
+
+  def list_keys {V : Type} (lst : List (key × V)) :=
+  List.map (fun x => x.fst) lst
+
+  --  Prove that elements t is sorted by keys. Proceed by induction on the evidence that t is a BST. 
+  def sorted_elements_spec := ∀ (V : Type) (t : @vfatree V),
+    BST t → sort.sorted (list_keys (elements t))
+
+  def disjoint {X:Type u} (l1 l2: List X) := ∀ (x : X),
+    List.Mem x l1 → ¬ List.Mem x l2
+
+  -- Coq's List.NoDup
+  axiom NoDup {T:Type u} (l:List T) : Prop
+  -- Prove that if two lists are disjoint, appending them preserves NoDup.
+  def NoDup_append_spec := ∀ (X:Type) (l1 l2: List X),
+  NoDup l1 → NoDup l2 → disjoint l1 l2 →
+  NoDup (l1 ++ l2)
+
+  -- Prove that there are no duplicate keys in the list returned by elements
+  def elements_nodup_keys_spec := ∀ (V : Type) (t : @vfatree V),
+    BST t →
+    NoDup (list_keys (elements t))
+
+  -- A Faster elements Implementation
+  def fast_elements_tr {V : Type} (t : @vfatree V)
+         (acc : List (key × V)) : List (key × V) :=
+  match t with
+  | E => acc
+  | T l k v r => fast_elements_tr l ((k, v) :: fast_elements_tr r acc)
+
+  def fast_elements {V : Type} (t : @vfatree V) : List (key × V) :=
+  fast_elements_tr t []
+
+  -- No explicit English; this is a helper lemma for the next spec
+  def fast_elements_tr_helper_spec :=
+  ∀ (V : Type) (t : @vfatree V) (lst : List (key × V)),
+    fast_elements_tr t lst = elements t ++ lst
+
+  -- Prove that fast_elements and elements compute the same function. 
+  def fast_elements_eq_elements_spec := ∀ (V : Type) (t : @vfatree V),
+    fast_elements t = elements t
+
+  --  Since the two implementations compute the same function, all the results we proved about the correctness of elements also hold for fast_elements. For example: 
+  def fast_elements_correct_spec :=
+  ∀ (V : Type) (k : key) (v d : V) (t : @vfatree V),
+    BST t →
+    List.Mem (k, v) (fast_elements t) →
+    bound k t = true ∧ lookup d k t = v
+
+  -- An Algebraic Specification of elements
+
+  -- No explicit English
+  def elements_empty_spec := ∀ (V : Type),
+    @elements V empty_tree = []
+
+  def kvs_insert {V : Type} (k : key) (v : V) (kvs : List (key × V)) :=
+    match kvs with
+    | [] => [(k, v)]
+    | (k', v') :: kvs' =>
+      if k < k' then (k, v) :: kvs
+      else if k > k' then (k', v') :: kvs_insert k v kvs'
+           else (k, v) :: kvs'
+
+  -- No explicit English
+  -- Part of the point of this section of the chapter is to basically say this kind of spec is hideous and should be avoided
+  def kvs_insert_split_spec :=
+  ∀ (V : Type) (v v0 : V) (e1 e2 : List (key × V)) (k k0 : key),
+    Forall (fun (k',_) => k' < k0) e1 →
+    Forall (fun (k',_) => k' > k0) e2 →
+    kvs_insert k v (e1 ++ (k0,v0):: e2) =
+    if k < k0 then
+      (kvs_insert k v e1) ++ (k0,v0)::e2
+    else if k > k0 then
+           e1 ++ (k0,v0)::(kvs_insert k v e2)
+         else
+           e1 ++ (k,v)::e2
+
+  -- No explicit English
+  def kvs_insert_elements_spec := ∀ (V : Type) (t : @vfatree V),
+    BST t →
+    ∀ (k : key) (v : V),
+      elements (insert k v t) = kvs_insert k v (elements t)
+
+  -- Omitting: Model-based Specifications
+  -- For now: there are no English specs
   -- Omitting: An Alternative Abstraction Relation (Optional, Advanced)
 
 end searchtree
+
+namespace sort_specs
+  open sort
+  open Cat
+
+  lex sorted for Prop as (@ADJ (List Nat))
+
+  -- Perusing the types used, we're likely to require some prepositional phrases:
+  --    - list *of* naturals
+  --    - tree *of* naturals
+  --    - insert X *into* Y
+  -- We're going to need at least indefinite articles unless we rewrite some specs slightly
+  --    - *a* sort algorithm
+  --    - *a* permutation *of* ...
+  -- We'll need either pronouns or named variables
+  --    - a permutation of <some aforementioned list>
+
+end sort_specs
