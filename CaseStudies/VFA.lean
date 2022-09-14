@@ -313,6 +313,8 @@ namespace sort_specs
   open Cat
 
   lex sorted for Prop as (@ADJ (List Nat))
+  instance permutation_lex : lexicon Prop "permutation" (rslash (???) (@PP _ PPType.OF)) where
+    denotation := Permutation
 
   -- Perusing the types used, we're likely to require some prepositional phrases:
   --    - list *of* naturals
