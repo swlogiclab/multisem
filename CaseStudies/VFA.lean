@@ -326,4 +326,19 @@ namespace sort_specs
   -- We'll need either pronouns or named variables
   --    - a permutation of <some aforementioned list>
 
+  def insert_sorted_spec' := [| insertion maintains sortedness |]
+  def sort_sorted_spec' := [| insertion sort makes a list sorted |]
+  -- No original English, this is a proposal
+  -- First inclination is to use "inserting" and "consing" with heavy reliance on articles, which is actually still vague
+  -- Might be good use case for named variables
+  def insert_perm_spec' := [| TODO |]
+  def sort_perm_spec' := [| sort is a permutation |]
+  -- No original English, this is a proposal
+  def insertion_sort_correct_spec' := [| sort is a sorting algorithm |]
+
+  -- This leaves the two lemmas proving equivalence of two sortedness defs
+  -- These may be below the level of detail we want in English,
+  -- or otherwise need some creative language use
+
+
 end sort_specs
