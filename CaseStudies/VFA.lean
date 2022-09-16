@@ -313,8 +313,24 @@ namespace sort_specs
   open Cat
 
   lex sorted for Prop as (@ADJ (List Nat))
-  instance permutation_lex : lexicon Prop "permutation" (rslash (???) (@PP _ PPType.OF)) where
-    denotation := Permutation
+  lex sort for Prop as (@NP (List Nat -> List Nat))
+
+  instance permutation_lex : lexicon Prop "permutation" (rslash () (@PP _ PPType.OF)) where
+    denotation ofarg prearg := Permutation prearg ofarg
+  instance permutation_noun_lex : lexicon Prop "permutation" ()
+
+  
+  instance list_lex {P:Type u}{T:Type u}: lexicon P "list" (rslash (@CN (List T)) (@PP T PPType.OFN)) where
+    denotation _ := pu
+
+  -- Thinking through "sort is a permutation":
+  -- sort is a NP
+  -- 'is' will pick up yet another lexical entry
+  -- 'a permutation' is the real question.
+  -- 'a' is of course a determiner, which means a GQ. Usually this is interchangeable with 'some'
+  -- 'permutation' here is used as a common noun describing functions that permute their input. So it's kind of used as a predicate on functions (on nat lists). But currently my common nouns have no computational content. Maybe I can/should split the difference and make CNs be predicates on the indexed type? Existing stuff will continue to parse grammatically, but then every GQ should apply the predicate appropriately. CNs that correspond to "all elements of type T" can just be the trivial predicate on Ts, while we can get to stuff like "even natural" by making "even" of type (CN Nat)/(CN Nat) and refining the predicate? Isn't this the same sort of thing I did with the QuickChick hack? (Whatever works for permutation as a descriptor of functions, will also work for 'permutation of X' as a descriptor of individuals that could be permuted)
+  -- Almost: the QC hack used a one-off experimental hook in the Coq prototype for adding a "computationally relevant CN" category. But close.
+  -- One wrinkle with this is that this gets weird with the work towards 'list of naturals': It makes it possible to write 'list of even naturals' but then the current denotation of PP[OFN] is unit. Could make it be something like a refinement type, but that gets weird fast without language support. Need to change the denotation so it can do *something* with a predicate like that, but what? I think that, plus 'a', might be enough to do all these examples.
 
   -- Perusing the types used, we're likely to require some prepositional phrases:
   --    - list *of* naturals

@@ -4,7 +4,7 @@ import Multisem.Text.Macros
 
 universe u v t
 
-inductive PPType : Type := | IN | INTO | TO | FROM | OF
+inductive PPType : Type := | IN | INTO | TO | FROM | OF | OFN
 deriving instance Repr for PPType
 
 -- We're going to go full traditional CCG here
@@ -42,7 +42,8 @@ def interp (P:Type u) (c:Cat) : Type u :=
   | rslash a b => interp P b -> interp P a
   | lslash a b => interp P a -> interp P b
   | CN => polyunit
-  -- The variety of prepositional phrase has not semantic content, they're basically syntactic tags for disambiguation
+  -- The variety of prepositional phrase has not semantic content, they're basically syntactic tags for d"isambiguation
+  | @PP x PPType.OFN => polyunit -- This is a bit of a hack to make stuff like "of naturals" work, but I haven't found a clear discussion of "of CN" in the literature yet
   | @PP x _ => x
 
 class Coordinator (P:Type u)[HeytingAlgebra P](w:String) where
@@ -130,6 +131,14 @@ instance LComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (lslash c1 c2)][R:Synth P s
   stringRep := "(LComp "++L.stringRep++" "++R.stringRep++")"
 
 -- TODO: Need to add type raising!
+
+-- English-specific lifting rules
+-- Montague-style lifting for GQs in object position
+instance MLift (H:Type u){T U:Type u}{s}[sem:Synth H s (rslash (lslash (@NP T) S) (@NP U))] :
+  Synth H s (rslash (lslash (@NP T) S) (rslash S (lslash (@NP U) S))) where 
+  stringRep := "(MLift "++sem.stringRep++")"
+  denotation := fun P x => P (fun y => sem.denotation _ y x)
+
 
 
 @[simp]

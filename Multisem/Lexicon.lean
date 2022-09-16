@@ -44,7 +44,8 @@ instance or_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "or" where
 ---- More dictionary entries 
 --
 instance addslex : lexicon Prop "adds" (lslash (@NP (Nat->Nat)) (rslash S (@NP Nat))) where
-  denotation (sub:Nat->Nat) (obj:Nat) := forall x, sub x = x + obj
+  denotation (subj:Nat->Nat) (obj:Nat) := forall x, subj x = x + obj
+
 instance monotone : lexicon Prop "monotone" (@ADJ (Nat -> Nat)) where
   denotation f := forall x y, x <= y -> f x <= f y
 --instance noun_is_adj_sentence {A:Type} : lexicon "is" (lslash (rslash (prim S) (prim (@ADJ A))) (prim (@NP A))) := { denotation := fun n a => a n }
@@ -78,6 +79,8 @@ instance nonneg_lex' : lexicon Prop "nonnegative" (@ADJ Nat) where
 
 -- Prepositional phrases
 instance of_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "of" (rslash (@PP T PPType.OF) (@NP T)) where
+  denotation := fun x => x
+instance of_cn_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "of" (rslash (@PP T PPType.OFN) (@CN T)) where
   denotation := fun x => x
 instance to_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "to" (rslash (@PP T PPType.TO) (@NP T)) where
   denotation := fun x => x
