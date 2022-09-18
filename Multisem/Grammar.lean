@@ -8,12 +8,12 @@ inductive PPType : Type := | IN | INTO | TO | FROM | OF | OFN
 deriving instance Repr for PPType
 
 -- We're going to go full traditional CCG here
-inductive Cat : Type (u+1)  :=
+inductive Cat.{q} : Type (q+1)  :=
 | S : Cat
-| NP : forall {x:Type u}, Cat
-| ADJ : forall {x:Type u}, Cat
-| CN : forall {x:Type u}, Cat
-| PP : forall {x:Type u}, PPType -> Cat
+| NP : forall {x:Type q}, Cat
+| ADJ : forall {x:Type q}, Cat
+| CN : forall {x:Type q}, Cat
+| PP : forall {x:Type q}, PPType -> Cat
 | rslash : Cat  -> Cat  -> Cat 
 | lslash : Cat  -> Cat  -> Cat 
 open Cat
@@ -41,9 +41,9 @@ def interp (P:Type u) (c:Cat) : Type u :=
   | @ADJ x => x -> P
   | rslash a b => interp P b -> interp P a
   | lslash a b => interp P a -> interp P b
-  | CN => polyunit
+  | @CN x => x -> P
   -- The variety of prepositional phrase has not semantic content, they're basically syntactic tags for d"isambiguation
-  | @PP x PPType.OFN => polyunit -- This is a bit of a hack to make stuff like "of naturals" work, but I haven't found a clear discussion of "of CN" in the literature yet
+  | @PP x PPType.OFN => x -> P -- This is a bit of a hack to make stuff like "of naturals" work, but I haven't found a clear discussion of "of CN" in the literature yet
   | @PP x _ => x
 
 class Coordinator (P:Type u)[HeytingAlgebra P](w:String) where

@@ -1,7 +1,7 @@
 import Multisem.Text.Macros
 import Multisem.Lexicon
 
-universe u
+universe u v
 
 namespace sort
   open List
@@ -315,13 +315,12 @@ namespace sort_specs
   lex sorted for Prop as (@ADJ (List Nat))
   lex sort for Prop as (@NP (List Nat -> List Nat))
 
-  instance permutation_lex : lexicon Prop "permutation" (rslash () (@PP _ PPType.OF)) where
+  instance permutation_lex : lexicon Prop "permutation" (rslash (@CN (List Nat)) (@PP (List Nat) PPType.OF)) where
     denotation ofarg prearg := Permutation prearg ofarg
-  instance permutation_noun_lex : lexicon Prop "permutation" ()
 
   
-  instance list_lex {P:Type u}{T:Type u}: lexicon P "list" (rslash (@CN (List T)) (@PP T PPType.OFN)) where
-    denotation _ := pu
+  instance list_lex {P:Type u}[HeytingAlgebra P]{T:Type u}: lexicon P "list" (rslash (@CN (List T)) (@PP T PPType.OFN)) where
+    denotation _ := fun _ => HeytingAlgebra.top
 
   -- Thinking through "sort is a permutation":
   -- sort is a NP
@@ -331,6 +330,43 @@ namespace sort_specs
   -- 'permutation' here is used as a common noun describing functions that permute their input. So it's kind of used as a predicate on functions (on nat lists). But currently my common nouns have no computational content. Maybe I can/should split the difference and make CNs be predicates on the indexed type? Existing stuff will continue to parse grammatically, but then every GQ should apply the predicate appropriately. CNs that correspond to "all elements of type T" can just be the trivial predicate on Ts, while we can get to stuff like "even natural" by making "even" of type (CN Nat)/(CN Nat) and refining the predicate? Isn't this the same sort of thing I did with the QuickChick hack? (Whatever works for permutation as a descriptor of functions, will also work for 'permutation of X' as a descriptor of individuals that could be permuted)
   -- Almost: the QC hack used a one-off experimental hook in the Coq prototype for adding a "computationally relevant CN" category. But close.
   -- One wrinkle with this is that this gets weird with the work towards 'list of naturals': It makes it possible to write 'list of even naturals' but then the current denotation of PP[OFN] is unit. Could make it be something like a refinement type, but that gets weird fast without language support. Need to change the denotation so it can do *something* with a predicate like that, but what? I think that, plus 'a', might be enough to do all these examples.
+
+  -- So the tricky brain switch that needs to happen with compositional semantics
+  -- is that "phrase types" with the "same distribution" don't have the
+  -- same grammatical type. This is most apparent with determiners:
+  -- "Classically" [a noun] is a noun phrase. But [a] has existential flavor,
+  -- while other noun phrases are simply individuals. So the trick is that
+  -- determiners in English compose on the right with some noun, but
+  -- the result is not a noun phrase: it's something that can be used in 
+  -- all the same places as a noun phrase, but actually has a separate 
+  -- grammatical type so it can have different semantics.
+  -- Thus, the word 'a' has a type that combines with a noun on the right,
+  -- and then "something" on the left that's looking for a noun phrase to
+  -- *its* right.
+  -- The entry below is not as general as possible, but works for using
+  -- the indefinite article in a direct object position. It will require
+  -- further generalization in the future.
+  -- This has args in Type rather than Type u b/c it's a Prop entry
+  instance a_directobject {A:Type}{B:Type} : lexicon Prop "a" 
+    (rslash 
+      (lslash 
+        (rslash (lslash (@NP B) S) (@NP A))
+        (lslash (@NP B) S)) 
+      (@CN A)
+    ) where
+    denotation (cn:interp Prop (@CN A)) frag := fun subj => ∃ (a:A), cn a /\ frag a subj
+  -- We can lift any adjecctive to a modifier of common nouns
+  instance AdjModifier {H:Type u}{A : Type u}[ha:HeytingAlgebra H](s:String)[l:lexicon H s (@ADJ A)] : lexicon H s (rslash (@CN A) (@CN A)) where
+    denotation cn := fun x => ha.conj (l.denotation s x) (cn x)
+  
+  -- Somewhere there's an overly strict universe constraint, should be Type u
+  instance permutation_noun {T:Type}: lexicon Prop "permutation" (@CN (List T -> List T)) where
+    denotation := fun f => ∀ (l:List T), Permutation l (f l)
+  -- This is of course highly overspecialized, but the right general-purpose definition of 'algorithm' in a dependent type theory is itself a reasonably deep philosophical question
+  instance algorithm_basic {T:Type}: lexicon Prop "algorithm" (@CN (List T -> List T)) where
+    denotation := fun _ => True
+  instance sorting : lexicon Prop "sorting" (@ADJ  (List Nat -> List Nat)) where
+    denotation := fun f => ∀ l, sorted (f l)
 
   -- Perusing the types used, we're likely to require some prepositional phrases:
   --    - list *of* naturals
@@ -342,15 +378,34 @@ namespace sort_specs
   -- We'll need either pronouns or named variables
   --    - a permutation of <some aforementioned list>
 
+  -- TODO
   def insert_sorted_spec' := [| insertion maintains sortedness |]
+
+  -- TODO: This use of "a" is universal, rather than existential
   def sort_sorted_spec' := [| insertion sort makes a list sorted |]
+
   -- No original English, this is a proposal
   -- First inclination is to use "inserting" and "consing" with heavy reliance on articles, which is actually still vague
   -- Might be good use case for named variables
+  -- TODO
   def insert_perm_spec' := [| TODO |]
-  def sort_perm_spec' := [| sort is a permutation |]
+
+  def sort_perm_spec' : sort_perm_spec -> pspec [| sort is a permutation |] :=
+    by simp [sort_perm_spec]
+       intro H
+       exists sort
+
   -- No original English, this is a proposal
-  def insertion_sort_correct_spec' := [| sort is a sorting algorithm |]
+  #print insertion_sort_correct_spec
+  def insertion_sort_correct_spec' : insertion_sort_correct_spec -> pspec [| sort is a sorting algorithm |] :=
+    by simp [insertion_sort_correct_spec]
+       simp [is_a_sorting_algorithm]
+       intro H
+       exists sort
+       simp
+       intro l
+       match (H l) with
+       | ⟨ a, b ⟩ => exact b
 
   -- This leaves the two lemmas proving equivalence of two sortedness defs
   -- These may be below the level of detail we want in English,

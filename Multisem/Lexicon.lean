@@ -65,7 +65,7 @@ instance exists_lex {A}: lexicon Prop "some" (quant A) where
 instance forall_lex {A}: lexicon Prop "every" (quant A) where
   denotation := fun _ P => forall x, P x
 --
-instance nat_noun : lexicon Prop "natural" (@CN Nat) := { denotation := pu }
+instance nat_noun : lexicon Prop "natural" (@CN Nat) := { denotation := fun _ => True }
 --
 instance given_lex {A B}: lexicon Prop "given" (lslash (@NP (A -> B)) (rslash (@NP B) (@NP A))) where 
   denotation := fun f arg => f arg 
