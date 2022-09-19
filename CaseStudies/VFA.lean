@@ -404,7 +404,7 @@ namespace sort_specs
   -- The above requires a more general lexical category for 'any' than we currently have, since it uses them in subordinate clauses of the subject, while we've only given a direct object characterization so far
   -- Original was: insertion maintains sortedness
   -- TODO
-  def insert_sorted_spec' := [| insertion maintains sortedness |]
+  def insert_sorted_spec' := [| insertion of any natural into any list of naturals maintains sortedness of the list |]
 
   -- This use of "a" is universal, rather than existential, let's switch to any
   -- This original is actually ambiguous between the universal and existential reading of "a", so the rewrite improves precision
@@ -419,6 +419,8 @@ namespace sort_specs
   -- No original English, this is a proposal
   -- First inclination is to use "inserting" and "consing" with heavy reliance on articles, which is actually still vague
   -- Might be good use case for named variables
+  -- Or, if I go the anaphoric route with 'the', I could go with
+  -- Proposal: insertion of any natural into any list of naturals is a permutation of consing the natural onto the list
   -- TODO
   def insert_perm_spec' := [| TODO |]
 
