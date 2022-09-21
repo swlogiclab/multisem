@@ -404,12 +404,19 @@ namespace sort_specs
   -- The above requires a more general lexical category for 'any' than we currently have, since it uses them in subordinate clauses of the subject, while we've only given a direct object characterization so far
   -- Original was: insertion maintains sortedness
   -- NEW Candidate: insertion of any natural maintains sortedness
-  -- TODO
-  instance maintains_lex : lexicon Prop "maintains" (rslash (rslash (lslash (@NP (List Nat)) S) (@PP (List Nat) PPType.OF)) (@NP (List Nat -> Prop))) where
-    denotation prop init subj := prop init -> prop subj
+  -- The new candidate is much simpler, but raises questions about what grammatical category "insertion of any natural" ends up with, which must then be the left arg of 'maintains'"inserting any natural", this naturally corresponds to a NP denoting a function from `List Nat` to `List Nat`!
+  instance insertion_func : lexicon Prop "insertion" (rslash (@NP (List Nat -> List Nat)) (@PP Nat PPType.OF)) where
+    denotation pp := insert pp
+  instance maintains_lex : lexicon Prop "maintains" (rslash (lslash (@NP (List Nat -> List Nat)) S) (@NP (List Nat -> Prop))) where
+    denotation prop f := ∀ x, prop x -> prop (f x)
+  --instance maintains_lex : lexicon Prop "maintains" (rslash (rslash (lslash (@NP (List Nat)) S) (@PP (List Nat) PPType.OF)) (@NP (List Nat -> Prop))) where
+  --  denotation prop init subj := prop init -> prop subj
   -- Long long term, we could bake in some morphology that lifts 'sorted' from ADJ to 'sortedness' referring to the underlying predicate
   instance sortedness_lex : lexicon Prop "sortedness" (@NP (List Nat -> Prop)) where
     denotation := sorted
+  -- Sanity check: works, just need an updated lexical entry for 'any'
+  def _check := pspec [|insertion of three maintains sortedness|]
+  -- TODO
   def insert_sorted_spec' := [| insertion of any natural into any list of naturals maintains sortedness of the list |]
 
   -- This use of "a" is universal, rather than existential, let's switch to any
