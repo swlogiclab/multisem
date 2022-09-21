@@ -403,7 +403,13 @@ namespace sort_specs
   -- Candidate: insertion of any natural into any list maintains sortedness of the list
   -- The above requires a more general lexical category for 'any' than we currently have, since it uses them in subordinate clauses of the subject, while we've only given a direct object characterization so far
   -- Original was: insertion maintains sortedness
+  -- NEW Candidate: insertion of any natural maintains sortedness
   -- TODO
+  instance maintains_lex : lexicon Prop "maintains" (rslash (rslash (lslash (@NP (List Nat)) S) (@PP (List Nat) PPType.OF)) (@NP (List Nat -> Prop))) where
+    denotation prop init subj := prop init -> prop subj
+  -- Long long term, we could bake in some morphology that lifts 'sorted' from ADJ to 'sortedness' referring to the underlying predicate
+  instance sortedness_lex : lexicon Prop "sortedness" (@NP (List Nat -> Prop)) where
+    denotation := sorted
   def insert_sorted_spec' := [| insertion of any natural into any list of naturals maintains sortedness of the list |]
 
   -- This use of "a" is universal, rather than existential, let's switch to any
