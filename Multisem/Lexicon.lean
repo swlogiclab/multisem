@@ -139,3 +139,10 @@ instance algorithm_basic {T:Type}: lexicon Prop "algorithm" (@CN (List T -> List
 
 instance list_lex {P:Type u}[HeytingAlgebra P]{T:Type u}: lexicon P "list" (rslash (@CN (List T)) (@PP T PPType.OFN)) where
   denotation _ := fun _ => HeytingAlgebra.top
+
+instance any_ppobject {A:Type}{C:Cat} : lexicon Prop "any" 
+  (rslash 
+    (lslash (rslash C (@NP A)) (rslash S (lslash C S)))
+    (@CN A)
+  ) where
+  denotation (cn:interp Prop (@CN A)) frag tail := ∀ (a:A), cn a -> tail (frag a)

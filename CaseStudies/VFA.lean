@@ -375,15 +375,8 @@ namespace sort_specs
   instance sortedness_lex : lexicon Prop "sortedness" (@NP (List Nat -> Prop)) where
     denotation := sorted
   -- Sanity check: works, just need an updated lexical entry for 'any'
-  def _check := pspec [|insertion of three maintains sortedness|]
-  -- TODO
-  instance any_ppobject {A:Type}{C:Cat} : lexicon Prop "any" 
-    (rslash 
-      (lslash (rslash C (@NP A)) (rslash S (lslash C S)))
-      (@CN A)
-    ) where
-    denotation (cn:interp Prop (@CN A)) frag tail := ∀ (a:A), cn a -> tail (frag a)
   section DebuggingExample
+    def _check := pspec [|insertion of three maintains sortedness|]
     #check (any_ppobject (A:=(List Nat)) (C:=@NP (List Nat -> List Nat)))
     def insertion_of := dbgspecwitness Prop [|insertion of|] (rslash (@NP (List Nat -> List Nat)) (@NP Nat))
     def any_natural {C:Cat} := dbgspecwitness Prop [|any natural|] (lslash (rslash C (@NP Nat)) (rslash S (lslash C S)))
