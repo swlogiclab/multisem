@@ -65,7 +65,7 @@ def pu.{α} : polyunit.{α} := ULift.up ()
 
 -- We do Lambek-style interpretation of lslash
 @[simp]
-def interp (P:Type u) (c:Cat) : Type u :=
+def interp.{q} (P:Type q) (c:Cat.{q}) : Type q :=
   match c with
   | S => P
   | @NP x => x
@@ -74,7 +74,7 @@ def interp (P:Type u) (c:Cat) : Type u :=
   | lslash a b => interp P a -> interp P b
   | Ref a b => interp P b -> interp P a
   | @CN x => x -> P
-  -- The variety of prepositional phrase has not semantic content, they're basically syntactic tags for d"isambiguation
+  -- The variety of prepositional phrase has not semantic content, they're basically syntactic tags for disambiguation
   | @PP x PPType.OFN => x -> P -- This is a bit of a hack to make stuff like "of naturals" work, but I haven't found a clear discussion of "of CN" in the literature yet
   | @PP x _ => x
 
@@ -82,7 +82,7 @@ class Coordinator (P:Type u)[HeytingAlgebra P](w:String) where
   denoteCoord : P -> P -> P
 attribute [simp] Coordinator.denoteCoord
 
-class SurfaceHeytingAlgebra (P:Type u) (n:Nat) (C:Cat) where
+class SurfaceHeytingAlgebra (P:Type u) (n:Nat) (C:Cat.{u}) where
   combineProps : (P -> P -> P) -> interp P C -> interp P C -> interp P C
 attribute [simp] SurfaceHeytingAlgebra.combineProps
 
@@ -281,6 +281,8 @@ def pspec (l:tree String) [HeytingAlgebra Prop][sem:Synth Prop l S] : Prop :=
   sem.denotation
 @[simp]
 def specwitness (P:Type u)(l:tree String) [HeytingAlgebra P][sem:Synth P l S] : Synth P l S := sem
+@[simp]
+def dbgspecwitness (P:Type u)(l:tree String)(C:Cat) [HeytingAlgebra P][sem:Synth P l C] : Synth P l C := sem
 
 
 -- TODO: Name the lexicon instances introduced with this macro

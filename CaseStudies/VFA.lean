@@ -372,7 +372,7 @@ namespace sort_specs
         (lslash (@NP B) S)) 
       (@CN A)
     ) where
-    denotation (cn:interp Prop (@CN A)) frag := fun subj => ∀ (a:A), cn a /\ frag a subj
+    denotation (cn:interp Prop (@CN A)) frag := fun subj => ∀ (a:A), cn a -> frag a subj
   -- We can lift any adjecctive to a modifier of common nouns
   instance AdjModifier {H:Type u}{A : Type u}[ha:HeytingAlgebra H](s:String)[l:lexicon H s (@ADJ A)] : lexicon H s (rslash (@CN A) (@CN A)) where
     denotation cn := fun x => ha.conj (l.denotation s x) (cn x)
@@ -387,7 +387,10 @@ namespace sort_specs
     denotation := fun f => ∀ l, sorted (f l)
   instance sorts_lex : lexicon Prop "sorts" (rslash (lslash (@NP (List Nat -> List Nat)) S) (@NP (List Nat))) where
     denotation obj subj := sorted (subj obj)
+  -- For now we're ignoring pluralization
   instance naturals_lex : lexicon Prop "naturals" (@CN Nat) where
+    denotation _ := True
+  instance natural_lex : lexicon Prop "natural" (@CN Nat) where
     denotation _ := True
 
 
@@ -417,7 +420,27 @@ namespace sort_specs
   -- Sanity check: works, just need an updated lexical entry for 'any'
   def _check := pspec [|insertion of three maintains sortedness|]
   -- TODO
-  def insert_sorted_spec' := [| insertion of any natural into any list of naturals maintains sortedness of the list |]
+  instance any_ppobject {A:Type}{C:Cat} : lexicon Prop "any" 
+    (rslash 
+      (lslash (rslash C (@NP A)) (rslash S (lslash C S)))
+      (@CN A)
+    ) where
+    denotation (cn:interp Prop (@CN A)) frag tail := ∀ (a:A), cn a -> tail (frag a)
+  section DebuggingExample
+    #check (any_ppobject (A:=(List Nat)) (C:=@NP (List Nat -> List Nat)))
+    def insertion_of := dbgspecwitness Prop [|insertion of|] (rslash (@NP (List Nat -> List Nat)) (@NP Nat))
+    def any_natural {C:Cat} := dbgspecwitness Prop [|any natural|] (lslash (rslash C (@NP Nat)) (rslash S (lslash C S)))
+    def any_natural_manual {C:Cat} : Synth Prop [|any natural|] (lslash (rslash C (@NP Nat)) (rslash S (lslash C S))) :=
+      SynthRApp (L:=SynthLex (l:= any_ppobject)) (R:=SynthLex (l:= natural_lex))
+    def insertion_of_any_natural := dbgspec [|insertion of any natural|] (rslash S (lslash (@NP (List Nat -> List Nat)) S))
+    def maintains_sortedness := dbgspec [| maintains sortedness |] (lslash (@NP (List Nat -> List Nat)) S)
+  end DebuggingExample
+
+  def insert_sorted_spec' : insert_sorted_spec -> pspec [| insertion of any natural maintains sortedness |] :=
+  by simp [insert_sorted_spec]
+     intro H a L Hs
+     apply H
+     apply Hs
 
   -- This use of "a" is universal, rather than existential, let's switch to any
   -- This original is actually ambiguous between the universal and existential reading of "a", so the rewrite improves precision

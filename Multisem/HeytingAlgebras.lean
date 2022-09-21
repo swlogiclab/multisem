@@ -1,4 +1,4 @@
-class HeytingAlgebra (P:Type u) where
+class HeytingAlgebra.{u} (P:Type u) where
   top : P
   bottom : P
   conj : P -> P -> P
