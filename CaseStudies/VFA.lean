@@ -64,26 +64,26 @@ section searchtree
 
        
   -- tree is the name of the structure used for parsing, which should probably be renamed
-  inductive vfatree {V : Type u} : Type u where
+  inductive tree {V : Type u} : Type u where
   | E
-  | T (l: @vfatree V) (k: key) (v: V) (r: @vfatree V)
+  | T (l: @tree V) (k: key) (v: V) (r: @tree V)
   -- Aiming to preserve the implicit args structure of the original
-  open vfatree
+  open tree
 
-  def empty_tree {V : Type u} : @vfatree V := E
-  def bound {V : Type u} (x : key) (t : @vfatree V) :=
+  def empty_tree {V : Type u} : @tree V := E
+  def bound {V : Type u} (x : key) (t : @tree V) :=
     match t with
     | E => false
     | T l y v r => if x < y then bound x l
                    else if x > y then bound x r
                    else true
-  def lookup {V : Type u} (d : V) (x : key) (t : @vfatree V) : V :=
+  def lookup {V : Type u} (d : V) (x : key) (t : @tree V) : V :=
     match t with
     | E => d
     | T l y v r => if x < y then lookup d x l
                    else if x > y then lookup d x r
                    else v
-  def insert {V : Type u} (x : key) (v : V) (t : @vfatree V) : @vfatree V :=
+  def insert {V : Type u} (x : key) (v : V) (t : @tree V) : @tree V :=
     match t with
     | E => T E x v E
     | T l y v' r => if x < y then T (insert x v l) y v' r
@@ -98,11 +98,11 @@ section searchtree
   def bst_ex4 : bound 3 ex_tree = false := by rfl
 
   -- BST Invariant section
-  def ForallT {V : Type} (P: key → V → Prop) (t: @vfatree V) : Prop :=
+  def ForallT {V : Type} (P: key → V → Prop) (t: @tree V) : Prop :=
     match t with
     | E => True
     | T l k v r => P k v ∧ ForallT P l ∧ ForallT P r
-  inductive BST {V : Type} : @vfatree V → Prop :=
+  inductive BST {V : Type} : @tree V → Prop :=
   | BST_E : BST E
   | BST_T : ∀ l x v r,
       ForallT (fun y _ => y < x) l →
@@ -114,33 +114,33 @@ section searchtree
   -- Prove that the empty tree is a BST
   def empty_tree_BST_spec := ∀ (V:Type), BST (@empty_tree V)
   -- insert preserves any node predicate
-  def ForallT_insert_spec := ∀ (V : Type) (P : key → V → Prop) (t : @vfatree V),
+  def ForallT_insert_spec := ∀ (V : Type) (P : key → V → Prop) (t : @tree V),
     ForallT P t → ∀ (k : key) (v : V),
       P k v → ForallT P (insert k v t)
   -- No explicit English
-  def insert_BST_spec := ∀ (V : Type) (k : key) (v : V) (t : @vfatree V),
+  def insert_BST_spec := ∀ (V : Type) (k : key) (v : V) (t : @tree V),
     BST t → BST (insert k v t)
 
   -- Correctness of BST Operations
   -- No explicit English
   def lookup_empty_spec := ∀ (V : Type) (d : V) (k : key), lookup d k empty_tree = d
   -- No explicit English
-  def lookup_insert_eq_spec := ∀ (V : Type) (t : @vfatree V) (d : V) (k : key) (v : V),
+  def lookup_insert_eq_spec := ∀ (V : Type) (t : @tree V) (d : V) (k : key) (v : V),
     lookup d k (insert k v t) = v
   -- No explicit English
   def lookup_insert_eq'_spec :=
-  ∀ (V : Type) (t : @vfatree V) (d : V) (k : key) (v : V),
+  ∀ (V : Type) (t : @tree V) (d : V) (k : key) (v : V),
     lookup d k (insert k v t) = v
   -- No explicit English
   def lookup_insert_neq_spec :=
-  ∀ (V : Type) (t : @vfatree V) (d : V) (k k' : key) (v : V),
+  ∀ (V : Type) (t : @tree V) (d : V) (k k' : key) (v : V),
    k ≠ k' → lookup d k' (insert k v t) = lookup d k' t
 
   -- Omitting Exercise 3 (bound_correct) because it's basically a homework assignment, and this file will become public
 
   -- if bound returns false, then lookup returns the default value
   def bound_default_spec :=
-  ∀ (V : Type) (k : key) (d : V) (t : @vfatree V),
+  ∀ (V : Type) (k : key) (d : V) (t : @tree V),
     bound k t = false →
     lookup d k t = d
 
@@ -149,7 +149,7 @@ section searchtree
 
   -- This is a good module to work with, since it explores a bunch of specification styles
   -- TODO: Converting a BST to a List
-  def elements {V : Type} (t : @vfatree V) : List (key × V) :=
+  def elements {V : Type} (t : @tree V) : List (key × V) :=
   match t with
   | E => []
   | T l k v r => elements l ++ [(k, v)] ++ elements r
@@ -159,21 +159,21 @@ section searchtree
 
   -- ATTENTION: This is the broken spec
   def elements_complete_broken_spec :=
-  ∀ (V : Type) (k : key) (v d : V) (t : @vfatree V),
+  ∀ (V : Type) (k : key) (v d : V) (t : @tree V),
     BST t →
     lookup d k t = v →
     List.Mem (k, v) (elements t)
 
   -- elements is complete: if a binding is in t then it's in elements t
   def elements_complete_spec :=
-  ∀ (V : Type) (k : key) (v d : V) (t : @vfatree V),
+  ∀ (V : Type) (k : key) (v d : V) (t : @tree V),
     bound k t = true →
     lookup d k t = v →
     List.Mem (k, v) (elements t)
 
   --  elements is correct: if a binding is in elements t then it's in t. 
   def elements_correct_spec :=
-  ∀ (V : Type) (k : key) (v d : V) (t : @vfatree V),
+  ∀ (V : Type) (k : key) (v d : V) (t : @tree V),
     BST t →
     List.Mem (k, v) (elements t) →
     bound k t = true ∧ lookup d k t = v
@@ -186,31 +186,31 @@ section searchtree
     ∀ t, List.Mem t l -> P t
 
   -- Prove that if a property P holds of every node in a tree t, then that property holds of every pair in elements t. 
-  def elements_preserves_forall_spec := ∀ (V : Type) (P : key → V → Prop) (t : @vfatree V),
+  def elements_preserves_forall_spec := ∀ (V : Type) (P : key → V → Prop) (t : @tree V),
     ForallT P t →
     Forall  (uncurry P)  (elements t)
 
   -- Prove that if all the keys in t are in a relation R with a distinguished key k', then any key k in elements t is also related by R to k'
   def elements_preserves_relation_spec :=
-  ∀ (V : Type) (k k' : key) (v : V) (t : @vfatree V) (R : key → key → Prop),
+  ∀ (V : Type) (k k' : key) (v : V) (t : @tree V) (R : key → key → Prop),
     ForallT (fun y _ => R y k') t
     → List.Mem (k, v) (elements t)
     → R k k'
 
   -- No explicit English
   def elements_complete_inverse_spec :=
-  ∀ (V : Type) (k : key) (v : V) (t : @vfatree V),
+  ∀ (V : Type) (k : key) (v : V) (t : @tree V),
     BST t →
     bound k t = false →
     ¬ List.Mem (k, v) (elements t)
 
   -- "Prove the inverse"
-  def bound_value_spec := ∀ (V : Type) (k : key) (t : @vfatree V),
+  def bound_value_spec := ∀ (V : Type) (k : key) (t : @tree V),
     bound k t = true → ∃ v, ∀ d, lookup d k t = v
 
   -- "Prove the main result"
   def elements_correct_inverse_spec :=
-  ∀ (V : Type) (k : key) (t : @vfatree V),
+  ∀ (V : Type) (k : key) (t : @tree V),
     (∀ v, ¬ List.Mem (k, v) (elements t)) →
     bound k t = false
 
@@ -224,7 +224,7 @@ section searchtree
   List.map (fun x => x.fst) lst
 
   --  Prove that elements t is sorted by keys. Proceed by induction on the evidence that t is a BST. 
-  def sorted_elements_spec := ∀ (V : Type) (t : @vfatree V),
+  def sorted_elements_spec := ∀ (V : Type) (t : @tree V),
     BST t → sort.sorted (list_keys (elements t))
 
   def disjoint {X:Type u} (l1 l2: List X) := ∀ (x : X),
@@ -238,32 +238,32 @@ section searchtree
   NoDup (l1 ++ l2)
 
   -- Prove that there are no duplicate keys in the list returned by elements
-  def elements_nodup_keys_spec := ∀ (V : Type) (t : @vfatree V),
+  def elements_nodup_keys_spec := ∀ (V : Type) (t : @tree V),
     BST t →
     NoDup (list_keys (elements t))
 
   -- A Faster elements Implementation
-  def fast_elements_tr {V : Type} (t : @vfatree V)
+  def fast_elements_tr {V : Type} (t : @tree V)
          (acc : List (key × V)) : List (key × V) :=
   match t with
   | E => acc
   | T l k v r => fast_elements_tr l ((k, v) :: fast_elements_tr r acc)
 
-  def fast_elements {V : Type} (t : @vfatree V) : List (key × V) :=
+  def fast_elements {V : Type} (t : @tree V) : List (key × V) :=
   fast_elements_tr t []
 
   -- No explicit English; this is a helper lemma for the next spec
   def fast_elements_tr_helper_spec :=
-  ∀ (V : Type) (t : @vfatree V) (lst : List (key × V)),
+  ∀ (V : Type) (t : @tree V) (lst : List (key × V)),
     fast_elements_tr t lst = elements t ++ lst
 
   -- Prove that fast_elements and elements compute the same function. 
-  def fast_elements_eq_elements_spec := ∀ (V : Type) (t : @vfatree V),
+  def fast_elements_eq_elements_spec := ∀ (V : Type) (t : @tree V),
     fast_elements t = elements t
 
   --  Since the two implementations compute the same function, all the results we proved about the correctness of elements also hold for fast_elements. For example: 
   def fast_elements_correct_spec :=
-  ∀ (V : Type) (k : key) (v d : V) (t : @vfatree V),
+  ∀ (V : Type) (k : key) (v d : V) (t : @tree V),
     BST t →
     List.Mem (k, v) (fast_elements t) →
     bound k t = true ∧ lookup d k t = v
@@ -297,7 +297,7 @@ section searchtree
            e1 ++ (k,v)::e2
 
   -- No explicit English
-  def kvs_insert_elements_spec := ∀ (V : Type) (t : @vfatree V),
+  def kvs_insert_elements_spec := ∀ (V : Type) (t : @tree V),
     BST t →
     ∀ (k : key) (v : V),
       elements (insert k v t) = kvs_insert k v (elements t)
