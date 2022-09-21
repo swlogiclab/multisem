@@ -81,7 +81,7 @@ def addone_given_three_is_four := (pspec ("addone" # ("given" # ("three" # ("is"
 def addone_given_three_equals_four := (pspec ("addone" # ("given" # ("three" # ("equals" # "four")))))
 
 def addone_mono : pspec [|addone is monotone|] :=
-  by -- ⊢ pspec (tree.one "addone"#tree.one "is"#tree.one "monotone")
+  by -- ⊢ pspec (ContextTree.one "addone"#ContextTree.one "is"#ContextTree.one "monotone")
      simp
      -- ⊢ ∀ (x y : Nat), x ≤ y → addone x ≤ addone y
      intro x y h
@@ -131,22 +131,22 @@ def every_natural_is_odd_or_even := (pspec ("every" # ("natural" # ("is" # ("odd
 def every_natural_is_odd_or_even3 := (pspec ("every" # ("natural" # ("is" # ("odd" # ("or" # "even"))))))
 
 -- This is the absolute simplest morphism between lexicons
-instance SynthMorphBase (P:Type u)[HeytingAlgebra P](t:tree String)(psem:Synth P t S)(Q:Type v)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where
+instance SynthMorphBase (P:Type u)[HeytingAlgebra P](t:ContextTree String)(psem:Synth P t S)(Q:Type v)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t S where
   denotation := ham.morph psem.denotation
   stringRep := "(morphbase "++psem.stringRep++")"
 -- Marginally more interesting; weird b/c I had to constrain the HAs to be in the same universe
-instance SynthMorphADJ (T:Type u)(P:Type u)[HeytingAlgebra P](t:tree String)(psem:Synth P t (@ADJ T))(Q:Type u)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
+instance SynthMorphADJ (T:Type u)(P:Type u)[HeytingAlgebra P](t:ContextTree String)(psem:Synth P t (@ADJ T))(Q:Type u)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
   denotation := λ x => ham.morph (psem.denotation _ x)
   stringRep := "(morphadj "++psem.stringRep++")"
 --
 
 -- Additional spec types
 
-def ltlspec (T : Type u) (l:tree String) [sem:Synth (ltl.LTLFormula T) l S] : (ltl.LTLFormula T) :=
+def ltlspec (T : Type u) (l:ContextTree String) [sem:Synth (ltl.LTLFormula T) l S] : (ltl.LTLFormula T) :=
   sem.denotation
-def ctlspec (T : Type u) (l:tree String) [sem:Synth (ctl.CTLFormula T) l S] : (ctl.CTLFormula T) :=
+def ctlspec (T : Type u) (l:ContextTree String) [sem:Synth (ctl.CTLFormula T) l S] : (ctl.CTLFormula T) :=
   sem.denotation
-def ctlstarspec (T : Type u) (l:tree String) [sem:Synth (ctlstar.CTLStarFormula T) l S] : (ctlstar.CTLStarFormula T) :=
+def ctlstarspec (T : Type u) (l:ContextTree String) [sem:Synth (ctlstar.CTLStarFormula T) l S] : (ctlstar.CTLStarFormula T) :=
   sem.denotation
 
 -- some longer-running examples

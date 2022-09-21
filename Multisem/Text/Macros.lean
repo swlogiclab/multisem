@@ -2,20 +2,20 @@ import Lean
 import Lean.Syntax
 open Lean Meta Std
 
-inductive tree (A:Type) where
-  | one : A -> tree A
-  | comp : tree A -> tree A -> tree A
-instance {A:Type} : Coe A (tree A) where
-  coe a := tree.one a
-notation:64 x "#" y => tree.comp x y
-deriving instance Repr for tree
+inductive ContextTree (A:Type) where
+  | one : A -> ContextTree A
+  | comp : ContextTree A -> ContextTree A -> ContextTree A
+instance {A:Type} : Coe A (ContextTree A) where
+  coe a := ContextTree.one a
+notation:64 x "#" y => ContextTree.comp x y
+deriving instance Repr for ContextTree
 
 def buildAppend (stx: Lean.Syntax) (l:List Lean.Syntax) : Lean.MacroM (Lean.TSyntax `term) :=
   match l with
   | [] => throw (Lean.Macro.Exception.error stx "Must have at least one word")
   | x::[] => match x with
              | Lean.Syntax.ident _ _ (Lean.Name.str _ txt) _ =>
-               pure (Lean.Syntax.mkCApp `tree.one #[Lean.Syntax.mkStrLit txt])
+               pure (Lean.Syntax.mkCApp `ContextTree.one #[Lean.Syntax.mkStrLit txt])
                --pure (Lean.Syntax.mkCApp `List.cons #[Lean.Syntax.mkStrLit txt, Lean.Syntax.mkCApp `List.nil #[]])
                --pure (Lean.Syntax.node Lean.SourceInfo.none `Lean.Parser.)
                --pure (mkApp (mkApp (mkConst `List.cons) (mkStrLit txt)) (mkConst `List.empty))
@@ -28,7 +28,7 @@ def buildAppend (stx: Lean.Syntax) (l:List Lean.Syntax) : Lean.MacroM (Lean.TSyn
       let rhs <- buildAppend stx xs;
       match x with
       | Lean.Syntax.ident _ _ (Lean.Name.str _ txt) _ =>
-        pure (Lean.Syntax.mkCApp `tree.comp #[Lean.Syntax.mkStrLit txt, rhs])
+        pure (Lean.Syntax.mkCApp `ContextTree.comp #[Lean.Syntax.mkStrLit txt, rhs])
       | _ => throw (Lean.Macro.Exception.error stx "Only individual words are valid")
 
 syntax (name := splitParser) "[|" ident+ "|]": term

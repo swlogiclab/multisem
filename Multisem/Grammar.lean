@@ -122,7 +122,7 @@ instance coordLexicon (P:Type)[HeytingAlgebra P](w:String) (C:Cat)[Coordinator P
   denotation := fun L R => SurfaceHeytingAlgebra.combineProps 3 (Coordinator.denoteCoord w) L R
 -- We don't need the other associativity, as it can be recovered by shifting
 
-class Synth (P:Type u)(ws:tree String) (c:Cat) where
+class Synth (P:Type u)(ws:ContextTree String) (c:Cat) where
   denotation : interp P c
   stringRep : Lean.Format
 attribute [simp] Synth.denotation
@@ -130,12 +130,12 @@ attribute [simp] Synth.denotation
 -- The Repr typeclass is how Lean displays results of #eval commands.
 -- Implementing this (and for that matter, requiring Synth.stringRep)
 -- lets us print the result of a call to specwitness
-instance (P:Type u)(ws:tree String) (c:Cat) : Repr (Synth P ws c) where
+instance (P:Type u)(ws:ContextTree String) (c:Cat) : Repr (Synth P ws c) where
   reprPrec inst n := inst.stringRep
 
 
 
-instance SynthLex (P:Type u){w:String}{C:Cat}[l:lexicon P w C] : Synth P (tree.one w) C where
+instance SynthLex (P:Type u){w:String}{C:Cat}[l:lexicon P w C] : Synth P (ContextTree.one w) C where
   denotation := lexicon.denotation w
   stringRep := "lexicon<"++w++":"++ (reprPrec C 0) ++">"
 
@@ -274,15 +274,15 @@ end Anaphora
 
 
 @[simp]
-def dbgspec (l:tree String) (C:Cat) [sem:Synth Prop l C] : interp Prop C :=
+def dbgspec (l:ContextTree String) (C:Cat) [sem:Synth Prop l C] : interp Prop C :=
   sem.denotation
 @[simp]
-def pspec (l:tree String) [HeytingAlgebra Prop][sem:Synth Prop l S] : Prop :=
+def pspec (l:ContextTree String) [HeytingAlgebra Prop][sem:Synth Prop l S] : Prop :=
   sem.denotation
 @[simp]
-def specwitness (P:Type u)(l:tree String) [HeytingAlgebra P][sem:Synth P l S] : Synth P l S := sem
+def specwitness (P:Type u)(l:ContextTree String) [HeytingAlgebra P][sem:Synth P l S] : Synth P l S := sem
 @[simp]
-def dbgspecwitness (P:Type u)(l:tree String)(C:Cat) [HeytingAlgebra P][sem:Synth P l C] : Synth P l C := sem
+def dbgspecwitness (P:Type u)(l:ContextTree String)(C:Cat) [HeytingAlgebra P][sem:Synth P l C] : Synth P l C := sem
 
 
 -- TODO: Name the lexicon instances introduced with this macro
