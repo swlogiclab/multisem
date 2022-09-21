@@ -319,8 +319,7 @@ namespace sort_specs
     denotation ofarg prearg := Permutation prearg ofarg
 
   
-  instance list_lex {P:Type u}[HeytingAlgebra P]{T:Type u}: lexicon P "list" (rslash (@CN (List T)) (@PP T PPType.OFN)) where
-    denotation _ := fun _ => HeytingAlgebra.top
+
 
   -- Perusing the types used, we're likely to require some prepositional phrases:
   --    - list *of* naturals
@@ -341,57 +340,16 @@ namespace sort_specs
   -- Almost: the QC hack used a one-off experimental hook in the Coq prototype for adding a "computationally relevant CN" category. But close.
   -- One wrinkle with this is that this gets weird with the work towards 'list of naturals': It makes it possible to write 'list of even naturals' but then the current denotation of PP[OFN] is unit. Could make it be something like a refinement type, but that gets weird fast without language support. Need to change the denotation so it can do *something* with a predicate like that, but what? I think that, plus 'a', might be enough to do all these examples.
 
-  -- So the tricky brain switch that needs to happen with compositional semantics
-  -- is that "phrase types" with the "same distribution" don't have the
-  -- same grammatical type. This is most apparent with determiners:
-  -- "Classically" [a noun] is a noun phrase. But [a] has existential flavor,
-  -- while other noun phrases are simply individuals. So the trick is that
-  -- determiners in English compose on the right with some noun, but
-  -- the result is not a noun phrase: it's something that can be used in 
-  -- all the same places as a noun phrase, but actually has a separate 
-  -- grammatical type so it can have different semantics.
-  -- Thus, the word 'a' has a type that combines with a noun on the right,
-  -- and then "something" on the left that's looking for a noun phrase to
-  -- *its* right.
-  -- The entry below is not as general as possible, but works for using
-  -- the indefinite article in a direct object position. It will require
-  -- further generalization in the future.
-  -- This has args in Type rather than Type u b/c it's a Prop entry
-  instance a_directobject {A:Type}{B:Type} : lexicon Prop "a" 
-    (rslash 
-      (lslash 
-        (rslash (lslash (@NP B) S) (@NP A))
-        (lslash (@NP B) S)) 
-      (@CN A)
-    ) where
-    denotation (cn:interp Prop (@CN A)) frag := fun subj => ∃ (a:A), cn a /\ frag a subj
-  instance any_directobject {A:Type}{B:Type} : lexicon Prop "any" 
-    (rslash 
-      (lslash 
-        (rslash (lslash (@NP B) S) (@NP A))
-        (lslash (@NP B) S)) 
-      (@CN A)
-    ) where
-    denotation (cn:interp Prop (@CN A)) frag := fun subj => ∀ (a:A), cn a -> frag a subj
-  -- We can lift any adjecctive to a modifier of common nouns
-  instance AdjModifier {H:Type u}{A : Type u}[ha:HeytingAlgebra H](s:String)[l:lexicon H s (@ADJ A)] : lexicon H s (rslash (@CN A) (@CN A)) where
-    denotation cn := fun x => ha.conj (l.denotation s x) (cn x)
+
   
-  -- Somewhere there's an overly strict universe constraint, should be Type u
   instance permutation_noun {T:Type}: lexicon Prop "permutation" (@CN (List T -> List T)) where
     denotation := fun f => ∀ (l:List T), Permutation l (f l)
-  -- This is of course highly overspecialized, but the right general-purpose definition of 'algorithm' in a dependent type theory is itself a reasonably deep philosophical question
-  instance algorithm_basic {T:Type}: lexicon Prop "algorithm" (@CN (List T -> List T)) where
-    denotation := fun _ => True
+
   instance sorting : lexicon Prop "sorting" (@ADJ  (List Nat -> List Nat)) where
     denotation := fun f => ∀ l, sorted (f l)
   instance sorts_lex : lexicon Prop "sorts" (rslash (lslash (@NP (List Nat -> List Nat)) S) (@NP (List Nat))) where
     denotation obj subj := sorted (subj obj)
-  -- For now we're ignoring pluralization
-  instance naturals_lex : lexicon Prop "naturals" (@CN Nat) where
-    denotation _ := True
-  instance natural_lex : lexicon Prop "natural" (@CN Nat) where
-    denotation _ := True
+
 
 
 
@@ -412,8 +370,7 @@ namespace sort_specs
     denotation pp := insert pp
   instance maintains_lex : lexicon Prop "maintains" (rslash (lslash (@NP (List Nat -> List Nat)) S) (@NP (List Nat -> Prop))) where
     denotation prop f := ∀ x, prop x -> prop (f x)
-  --instance maintains_lex : lexicon Prop "maintains" (rslash (rslash (lslash (@NP (List Nat)) S) (@PP (List Nat) PPType.OF)) (@NP (List Nat -> Prop))) where
-  --  denotation prop init subj := prop init -> prop subj
+
   -- Long long term, we could bake in some morphology that lifts 'sorted' from ADJ to 'sortedness' referring to the underlying predicate
   instance sortedness_lex : lexicon Prop "sortedness" (@NP (List Nat -> Prop)) where
     denotation := sorted
@@ -457,6 +414,7 @@ namespace sort_specs
   -- Might be good use case for named variables
   -- Or, if I go the anaphoric route with 'the', I could go with
   -- Proposal: insertion of any natural into any list of naturals is a permutation of consing the natural onto the list
+  -- Alternate: insertion of any natural into any list of naturals is a permutation of insertion of the natural into the list [of naturals]
   -- TODO
   def insert_perm_spec' := [| TODO |]
 
