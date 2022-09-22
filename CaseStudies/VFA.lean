@@ -63,7 +63,6 @@ section searchtree
   instance {x : Nat} : OfNat key x := OfNat.mk x
 
        
-  -- tree is the name of the structure used for parsing, which should probably be renamed
   inductive tree {V : Type u} : Type u where
   | E
   | T (l: @tree V) (k: key) (v: V) (r: @tree V)
@@ -314,35 +313,13 @@ namespace sort_specs
 
   lex sorted for Prop as (@ADJ (List Nat))
   lex sort for Prop as (@NP (List Nat -> List Nat))
+  lex insert for Prop as (@NP (Nat -> List Nat -> List Nat))
+  instance cons_lex {T:Type}: lexicon Prop "cons" (@NP (T -> List T -> List T)) where
+    denotation := List.cons
 
-  instance permutation_lex : lexicon Prop "permutation" (rslash (@CN (List Nat)) (@PP (List Nat) PPType.OF)) where
-    denotation ofarg prearg := Permutation prearg ofarg
-
-  
-
-
-  -- Perusing the types used, we're likely to require some prepositional phrases:
-  --    - list *of* naturals
-  --    - tree *of* naturals
-  --    - insert X *into* Y
-  -- We're going to need at least indefinite articles unless we rewrite some specs slightly
-  --    - *a* sort algorithm
-  --    - *a* permutation *of* ...
-  -- We'll need either pronouns or named variables
-  --    - a permutation of <some aforementioned list>
-
-  -- Thinking through "sort is a permutation":
-  -- sort is a NP
-  -- 'is' will pick up yet another lexical entry
-  -- 'a permutation' is the real question.
-  -- 'a' is of course a determiner, which means a GQ. Usually this is interchangeable with 'some'
-  -- 'permutation' here is used as a common noun describing functions that permute their input. So it's kind of used as a predicate on functions (on nat lists). But currently my common nouns have no computational content. Maybe I can/should split the difference and make CNs be predicates on the indexed type? Existing stuff will continue to parse grammatically, but then every GQ should apply the predicate appropriately. CNs that correspond to "all elements of type T" can just be the trivial predicate on Ts, while we can get to stuff like "even natural" by making "even" of type (CN Nat)/(CN Nat) and refining the predicate? Isn't this the same sort of thing I did with the QuickChick hack? (Whatever works for permutation as a descriptor of functions, will also work for 'permutation of X' as a descriptor of individuals that could be permuted)
-  -- Almost: the QC hack used a one-off experimental hook in the Coq prototype for adding a "computationally relevant CN" category. But close.
-  -- One wrinkle with this is that this gets weird with the work towards 'list of naturals': It makes it possible to write 'list of even naturals' but then the current denotation of PP[OFN] is unit. Could make it be something like a refinement type, but that gets weird fast without language support. Need to change the denotation so it can do *something* with a predicate like that, but what? I think that, plus 'a', might be enough to do all these examples.
-
-
-  
   instance permutation_noun {T:Type}: lexicon Prop "permutation" (@CN (List T -> List T)) where
+    denotation := fun f => ∀ (l:List T), Permutation l (f l)
+  instance permuting_adj {T:Type} : lexicon Prop "permuting" (@ADJ (List T -> List T)) where
     denotation := fun f => ∀ (l:List T), Permutation l (f l)
 
   instance sorting : lexicon Prop "sorting" (@ADJ  (List Nat -> List Nat)) where
@@ -350,22 +327,10 @@ namespace sort_specs
   instance sorts_lex : lexicon Prop "sorts" (rslash (lslash (@NP (List Nat -> List Nat)) S) (@NP (List Nat))) where
     denotation obj subj := sorted (subj obj)
 
+  instance permutation_lifted {A B : Type}: lexicon Prop "permutation" (rslash (@CN (A -> B -> List Nat)) (@PP (A -> B -> List Nat) PPType.OF)) where
+    denotation other f := ∀ a b, Permutation (other a b) (f a b)
 
 
-
-  -- Let's err on the side of more linguistically-general grammatical types,
-  -- even while we stick to the concrete (List Int) types of the code here.
-  -- 'insertion' generally takes an 'of' PP and an 'into' PP, in either order
-  -- (I think it's acceptable to just do one order here). The result is 
-  -- classically/naively a noun phrase (but again, is really something 'usable where a NP is usable)
-  -- 'maintains' suggests a property true of the output, and 'sortedness' is an appropriate kind of word for expressing such properties (e.g., @NP (List Int -> Prop)).
-  -- The precondition part of maintains is a bit more subtle, as technically there's a bit of discourse and implicature happening here that's above the level we're modeling explicitly: of course the initial sortedness has to refer to the input list, since that's the only referent in scope for which any notion of sortedness exists. We can make this explicit by making it "sortedness of", setting up for "the list".
-  -- That would require some support for at least a simple narrow-scope reading of the 'the' determiner. In traditional linguistic semantics assignment of truth conditions is partial because definite articles denote as a Russel-style use of the axiom of definite description, classically an extra quantifier. Stephen Neale has given a generalized quantifier version of its semantics, where 'the' is essentially an existential quantifier which also explicitly specifies uniqueness. The problem with that is that Neale's version and similar proposals assume a fixed domain of discourse, while we currently lack any kind of constraints on the domain of referents. This makes a proper adaptation of 'the' to our setting require a bit of ingenuity. We could treat it instead as just an anaphor, but the classic approaches to that (e.g., Jacobson) don't enforce uniqueness or expose enough domain information to make uniqueness expressible.
-  -- Candidate: insertion of any natural into any list maintains sortedness of the list
-  -- The above requires a more general lexical category for 'any' than we currently have, since it uses them in subordinate clauses of the subject, while we've only given a direct object characterization so far
-  -- Original was: insertion maintains sortedness
-  -- NEW Candidate: insertion of any natural maintains sortedness
-  -- The new candidate is much simpler, but raises questions about what grammatical category "insertion of any natural" ends up with, which must then be the left arg of 'maintains'"inserting any natural", this naturally corresponds to a NP denoting a function from `List Nat` to `List Nat`!
   instance insertion_func : lexicon Prop "insertion" (rslash (@NP (List Nat -> List Nat)) (@PP Nat PPType.OF)) where
     denotation pp := insert pp
   instance maintains_lex : lexicon Prop "maintains" (rslash (lslash (@NP (List Nat -> List Nat)) S) (@NP (List Nat -> Prop))) where
@@ -386,48 +351,59 @@ namespace sort_specs
     def maintains_sortedness := dbgspec [| maintains sortedness |] (lslash (@NP (List Nat -> List Nat)) S)
   end DebuggingExample
 
-  def insert_sorted_spec' : insert_sorted_spec -> pspec [| insertion of any natural maintains sortedness |] :=
+  -- Original was: insertion maintains sortedness
+  -- Candidate: insertion of any natural maintains sortedness
+  #print insert_sorted_spec
+  def insert_sorted_spec' : 
+    insert_sorted_spec ->
+    pspec [| insertion of any natural maintains sortedness |] :=
   by simp [insert_sorted_spec]
-     intro H a L Hs
+     intro H 
      apply H
-     apply Hs
 
+  -- Original was: insertion sort makes a list sorted
   -- This use of "a" is universal, rather than existential, let's switch to any
   -- This original is actually ambiguous between the universal and existential reading of "a", so the rewrite improves precision
-  -- Original was: insertion sort makes a list sorted
   -- Proposal is: sort sorts any list
   -- Reasoning: 'makes' here would normally suggest the list is being *mutated*, which of course it is not. Instead, we'd like to be more explicit about it returning a (possibly distinct) sorted list.
+  #print sort_sorted_spec
   def sort_sorted_spec' : sort_sorted_spec -> pspec [| sort sorts any list of naturals|] :=
     by simp [sort_sorted_spec]
-       intro H l
+       intro H 
        apply H
 
   -- No original English, this is a proposal
-  -- First inclination is to use "inserting" and "consing" with heavy reliance on articles, which is actually still vague
-  -- Might be good use case for named variables
-  -- Or, if I go the anaphoric route with 'the', I could go with
-  -- Proposal: insertion of any natural into any list of naturals is a permutation of consing the natural onto the list
-  -- Alternate: insertion of any natural into any list of naturals is a permutation of insertion of the natural into the list [of naturals]
-  -- TODO
-  def insert_perm_spec' := [| TODO |]
+  -- We'll take the route of overloading permutation to talk about one function (into `List Nat`, since that's what `Permutation` is defined on) being a permutation of another if the results for any argument set is a permutation.
+  -- Technically we could generalize this for any number of arguments, but we'll just hard-code 2 for now.
+  -- Proposal: insert is a permutation of cons
+  #print insert_perm_spec
+  def insert_perm_spec' := pspec [| insert is a permutation of cons |]
 
-  def sort_perm_spec' : sort_perm_spec -> pspec [| sort is a permutation |] :=
+  -- Handling the original
+  def sort_perm_spec' : 
+    sort_perm_spec -> pspec [| sort is a permutation |] :=
     by simp [sort_perm_spec]
        intro H
        exists sort
 
-  -- No original English, this is a proposal
-  def insertion_sort_correct_spec' : insertion_sort_correct_spec -> pspec [| sort is a sorting algorithm |] :=
+  -- No original English, but can intuit "sort is a sorting algorithm" from the identifier
+  -- We will split sorting from permuting
+  #print insertion_sort_correct_spec
+  #print is_a_sorting_algorithm
+  def insertion_sort_correct_spec' : insertion_sort_correct_spec -> pspec [| sort is a sorting permuting algorithm |] :=
     by simp [insertion_sort_correct_spec]
        simp [is_a_sorting_algorithm]
        intro H
        exists sort
        simp
-       intro l
-       match (H l) with
-       | ⟨ _, b ⟩ => exact b
+       apply And.intro
+       . intro l
+         match (H l) with
+         | ⟨ _, b ⟩ => exact b
+       . intro l
+         match (H l) with
+         | ⟨ a, _ ⟩ => exact a
 
   -- This leaves the two lemmas proving equivalence of two sortedness defs
-  -- These may be below the level of detail we want in English,
-  -- or otherwise need some creative language use
+  -- These appear to be below the level of detail we want in English
 end sort_specs
