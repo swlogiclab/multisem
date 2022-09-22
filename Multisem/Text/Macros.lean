@@ -16,11 +16,6 @@ def buildAppend (stx: Lean.Syntax) (l:List Lean.Syntax) : Lean.MacroM (Lean.TSyn
   | x::[] => match x with
              | Lean.Syntax.ident _ _ (Lean.Name.str _ txt) _ =>
                pure (Lean.Syntax.mkCApp `ContextTree.one #[Lean.Syntax.mkStrLit txt])
-               --pure (Lean.Syntax.mkCApp `List.cons #[Lean.Syntax.mkStrLit txt, Lean.Syntax.mkCApp `List.nil #[]])
-               --pure (Lean.Syntax.node Lean.SourceInfo.none `Lean.Parser.)
-               --pure (mkApp (mkApp (mkConst `List.cons) (mkStrLit txt)) (mkConst `List.empty))
-               --(Lean.Syntax.node Lean.SourceInfo.none 
-               --       `List.cons #[(Lean.Syntax.mkStrLit txt) `List.empty])
              | _ => --pure (Lean.Syntax.mkStrLit (toString x))
                throw  (Lean.Macro.Exception.error stx "Only individual words are valid")
   | x::xs => 
