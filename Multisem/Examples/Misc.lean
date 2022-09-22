@@ -1,10 +1,8 @@
-
 import Init.Data.Nat
 import Multisem.HeytingAlgebras
 import Multisem.TemporalLogic
 import Multisem.Text.Macros
 import Multisem.Lexicon
-import Multisem.CaseStudies.VFA
 open Cat
 
 
@@ -28,7 +26,7 @@ def one_is_odd :=  pspec ("one"#("is"#"odd"))
 --  instance and_adj_lex {T}: @lexicon Bs BsBase  "and" (rslash (lslash (prim (@ADJ T)) (prim (@ADJ T))) (prim (@ADJ T))) := { denotation := fun a n x => a x /\ n x }
 --
 --
-instance equals_eq_lex {T}: lexicon Prop "equals" (rslash (lslash (@NP T) S) (@NP T)) where
+instance equals_eq_lex {T}: lexicon Prop "equals" (((@NP T) ∖ S) / (@NP T)) where
   denotation := fun r l => r = l 
 
 def one_equals_one := (pspec ("one" # ("equals" # "one")))
@@ -45,32 +43,11 @@ def one_is_odd_and_two_is_even := (pspec ("one" # ("is" # ("odd" # ("and" # ("tw
 ---- ah, okay, was missing a couple structural rules
 ---- but so far, while I haven't added universe polymorphism or sorted the primitives by logical type, this seems way snappier than Coq
 def one_is_odd_and_two_is_even' := (pspec (("one" # ("is" # "odd")) # ("and" # ("two" # ("is" # "even")))))
+def one_is_odd_and_two_is_even'' := pspec [|one is odd and two is even|]
 --
 --
 --
 
---
----- These instances are the source of major performance headaches in Coq. Enabling them here leads to timeouts instead
----- of long-running instance search, because the search process generates such huge instances that the typeclasses used
----- to guide unification internally hit their own heartbeat limits (hitting limits for whnf and isDefEq).
----- I've dug up examples of priority-setting for Lean4, but I'm not sure it does anything (not sure if higher or lower
----- numbers are higher or lower priority, but I've tried both). The feature isn't documented yet, so it may not be
----- stable or there may be other subtleties. In either case, I need a new approach to coordination.
----- The current Coq implementation uses Carpenter-style coordination based on con/dis-joining any Prop-targeting
----- category, but this probably has the same issue in general (I think it's more expressive than these rules...). But
----- Since that approach involves an extra typeclass, maybe I could try imposing a depth limit --- e.g., give a fuel
----- parameter to the recursive coordinator class, and in lexicon injection instantiate the fuel parameter to something 
----- modest like 6 or 10, which already seems like deeper category nesting than we'd really need, but would remain configurable
-----
-----instance (priority := default-20) and_liftL {G G'} [nxt:lexicon "and" (rslash (lslash G G) G)] : @lexicon Bs BsBase "and" (rslash (lslash (lslash G G') (lslash G G')) (lslash G G')):= { denotation := fun R L g' => @lexicon.denotation Bs BsBase "and" _ nxt (R g') (L g')}
-----instance (priority := default-20) and_liftR {G G'} [nxt:lexicon "and" (rslash (lslash G G) G)] : @lexicon Bs BsBase "and" (rslash (lslash (rslash G G') (rslash G G')) (rslash G G')):= { denotation := fun R L g' => @lexicon.denotation Bs BsBase "and" _ nxt (R g') (L g')}
-----
-----instance (priority := default-20) or_liftL {G G'} [nxt:lexicon "or" (rslash (lslash G G) G)] : @lexicon Bs BsBase "or" (rslash (lslash (lslash G G') (lslash G G')) (lslash G G')):= { denotation := fun R L g' => @lexicon.denotation Bs BsBase "or" _ nxt (R g') (L g')}
-----instance (priority := default-20) or_liftR {G G'} [nxt:lexicon "or" (rslash (lslash G G) G)] : @lexicon Bs BsBase "or" (rslash (lslash (rslash G G') (rslash G G')) (rslash G G')):= { denotation := fun R L g' => @lexicon.denotation Bs BsBase "or" _ nxt (R g') (L g')}
-
--- The problematic rules above have been replaced with the depth-bounded coordination
-
---
 ---- Specs from original testing file (though in the absence of the and/or lifting rules!!!)
 def addone (n:Nat) := n + 1
 instance addonelex : lexicon Prop "addone" (@NP (Nat -> Nat)) where 

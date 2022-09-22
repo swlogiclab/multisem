@@ -27,9 +27,9 @@ instance fivelex  : lexicon Prop "five"   (@NP Nat) := { denotation := asNat 5 }
 instance evenlex  : lexicon Prop "even" (@ADJ Nat) := { denotation := fun x => even x = true }
 instance oddlex   : lexicon Prop "odd" (@ADJ Nat) := { denotation := fun x => odd x = true }
 
-instance noun_is_adj_lex {T}{P}: lexicon P "is" (rslash (lslash (@NP T) S) (@ADJ T)) where
+instance noun_is_adj_lex {T}{P}: lexicon P "is" (((@NP T) ∖ S) / (@ADJ T)) where
   denotation := fun a n => a n
-instance noun_is_noun_lex {T}: lexicon Prop "is" (rslash (lslash (@NP T) S) (@NP T)) where
+instance noun_is_noun_lex {T}: lexicon Prop "is" (((@NP T) ∖ S) / (@NP T)) where
   denotation := fun a n => a = n
 
 instance and_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "and" where
@@ -43,7 +43,7 @@ instance or_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "or" where
 --
 ---- More dictionary entries 
 --
-instance addslex : lexicon Prop "adds" (lslash (@NP (Nat->Nat)) (rslash S (@NP Nat))) where
+instance addslex : lexicon Prop "adds" ((@NP (Nat->Nat)) ∖ (S / (@NP Nat))) where
   denotation (subj:Nat->Nat) (obj:Nat) := forall x, subj x = x + obj
 
 instance monotone : lexicon Prop "monotone" (@ADJ (Nat -> Nat)) where
@@ -58,7 +58,7 @@ instance monotone : lexicon Prop "monotone" (@ADJ (Nat -> Nat)) where
 set_option quotPrecheck false
 
 -- This needs to be notation, since typeclass unification doesn't unfold defs
-notation:65 "quant" A:65 => (rslash (rslash S (lslash (@NP A) S)) (@CN A))
+notation:65 "quant" A:65 => ((S / ((@NP A) ∖ S)) / (@CN A))
 --
 instance exists_lex {A}: lexicon Prop "some" (quant A) where
   denotation := fun _ P => exists x, P x
@@ -67,7 +67,7 @@ instance forall_lex {A}: lexicon Prop "every" (quant A) where
 --
 instance nat_noun : lexicon Prop "natural" (@CN Nat) := { denotation := fun _ => True }
 --
-instance given_lex {A B}: lexicon Prop "given" (lslash (@NP (A -> B)) (rslash (@NP B) (@NP A))) where 
+instance given_lex {A B}: lexicon Prop "given" ((@NP (A -> B)) ∖ ((@NP B) / (@NP A))) where 
   denotation := fun f arg => f arg 
 
 -- One down-side to the current macro system is that we can't have hyphens
@@ -78,17 +78,17 @@ instance nonneg_lex' : lexicon Prop "nonnegative" (@ADJ Nat) where
 
 
 -- Prepositional phrases
-instance of_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "of" (rslash (@PP T PPType.OF) (@NP T)) where
+instance of_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "of" ((@PP T PPType.OF) / (@NP T)) where
   denotation := fun x => x
-instance of_cn_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "of" (rslash (@PP T PPType.OFN) (@CN T)) where
+instance of_cn_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "of" ((@PP T PPType.OFN) / (@CN T)) where
   denotation := fun x => x
-instance to_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "to" (rslash (@PP T PPType.TO) (@NP T)) where
+instance to_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "to" ((@PP T PPType.TO) / (@NP T)) where
   denotation := fun x => x
-instance from_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "from" (rslash (@PP T PPType.FROM) (@NP T)) where
+instance from_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "from" ((@PP T PPType.FROM) / (@NP T)) where
   denotation := fun x => x
-instance in_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "in" (rslash (@PP T PPType.IN) (@NP T)) where
+instance in_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "in" ((@PP T PPType.IN) / (@NP T)) where
   denotation := fun x => x
-instance into_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "into" (rslash (@PP T PPType.INTO) (@NP T)) where
+instance into_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "into" ((@PP T PPType.INTO) / (@NP T)) where
   denotation := fun x => x
 
 -- So the tricky brain switch that needs to happen with compositional semantics
@@ -108,23 +108,13 @@ instance into_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "into" (rsl
 -- further generalization in the future.
 -- This has args in Type rather than Type u b/c it's a Prop entry
 instance a_directobject {A:Type}{B:Type} : lexicon Prop "a" 
-  (rslash 
-    (lslash 
-      (rslash (lslash (@NP B) S) (@NP A))
-      (lslash (@NP B) S)) 
-    (@CN A)
-  ) where
+  (((((@NP B) ∖ S) / (@NP A)) ∖ ((@NP B) ∖ S)) / (@CN A)) where
   denotation (cn:interp Prop (@CN A)) frag := fun subj => ∃ (a:A), cn a /\ frag a subj
 instance any_directobject {A:Type}{B:Type} : lexicon Prop "any" 
-  (rslash 
-    (lslash 
-      (rslash (lslash (@NP B) S) (@NP A))
-      (lslash (@NP B) S)) 
-    (@CN A)
-  ) where
+  (((((@NP B) ∖ S) / (@NP A)) ∖ ((@NP B) ∖ S)) / (@CN A)) where
   denotation (cn:interp Prop (@CN A)) frag := fun subj => ∀ (a:A), cn a -> frag a subj
 -- We can lift any adjecctive to a modifier of common nouns
-instance AdjModifier {H:Type u}{A : Type u}[ha:HeytingAlgebra H](s:String)[l:lexicon H s (@ADJ A)] : lexicon H s (rslash (@CN A) (@CN A)) where
+instance AdjModifier {H:Type u}{A : Type u}[ha:HeytingAlgebra H](s:String)[l:lexicon H s (@ADJ A)] : lexicon H s ((@CN A) / (@CN A)) where
   denotation cn := fun x => ha.conj (l.denotation s x) (cn x)
 
 -- For now we're ignoring pluralization
@@ -137,12 +127,9 @@ instance natural_lex : lexicon Prop "natural" (@CN Nat) where
 instance algorithm_basic {T:Type}: lexicon Prop "algorithm" (@CN (List T -> List T)) where
   denotation := fun _ => True
 
-instance list_lex {P:Type u}[HeytingAlgebra P]{T:Type u}: lexicon P "list" (rslash (@CN (List T)) (@PP T PPType.OFN)) where
+instance list_lex {P:Type u}[HeytingAlgebra P]{T:Type u}: lexicon P "list" ((@CN (List T)) / (@PP T PPType.OFN)) where
   denotation _ := fun _ => HeytingAlgebra.top
 
 instance any_ppobject {A:Type}{C:Cat} : lexicon Prop "any" 
-  (rslash 
-    (lslash (rslash C (@NP A)) (rslash S (lslash C S)))
-    (@CN A)
-  ) where
+  (((C / (@NP A)) ∖ (S / (C ∖ S))) / (@CN A)) where
   denotation (cn:interp Prop (@CN A)) frag tail := ∀ (a:A), cn a -> tail (frag a)

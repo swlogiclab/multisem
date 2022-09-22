@@ -21,31 +21,29 @@ inductive Cat.{q} : Type (q+1)  :=
 | lslash : Cat  -> Cat  -> Cat 
 open Cat
 
-namespace Notations
-  -- These are some currently-disabled notations for writing the slashes
-  -- At the moment we can't get lexicon entries working with a mix of explicit and notation-based categories, which we need for backwards compat right now
-  -- We can allow writing right slashes by implementing Div for Cat
-  instance CatDiv.{q} : Div (Cat.{q}) where
-    div := rslash
+-- These are some currently-disabled notations for writing the slashes
+-- At the moment we can't get lexicon entries working with a mix of explicit and notation-based categories, which we need for backwards compat right now
+-- We can allow writing right slashes by implementing Div for Cat
+instance CatDiv.{q} : Div (Cat.{q}) where
+  div := rslash
 
-  -- This is probably not best practice, but we really do need typeclass resolution to unfold these right now. Later if we are more uniform in using the notations for lexicon entries, we could probably remove these attribute overrides.
-  attribute [simp] HDiv.hDiv
-  attribute [simp] Div.div
+-- This is probably not best practice, but we really do need typeclass resolution to unfold these right now. Later if we are more uniform in using the notations for lexicon entries, we could probably remove these attribute overrides.
+attribute [simp] HDiv.hDiv
+attribute [simp] Div.div
 
-  theorem _checkCatDiv : (S / (@NP Nat)) = rslash S (@NP Nat) := by simp
-  -- We also want to write left slashes
-  class LDiv.{q} (α : Type q) where
-    lDiv : α → α → α
-  attribute [simp] LDiv.lDiv
+theorem _checkCatDiv : (S / (@NP Nat)) = rslash S (@NP Nat) := by simp
+-- We also want to write left slashes
+class LDiv.{q} (α : Type q) where
+  lDiv : α → α → α
+attribute [simp] LDiv.lDiv
 
-  -- CRITICAL: This is not simply backslash, but \setminus! Lean reserves the backslash character because it's used by all Lean editors for unicode lead character
-  infixr:70 " ∖ " => LDiv.lDiv
-  macro_rules |  `($x ∖ $y) => `(binop% LDiv.lDiv $x $y)
+-- CRITICAL: This is not simply backslash, but \setminus! Lean reserves the backslash character because it's used by all Lean editors for unicode lead character
+infixr:70 " ∖ " => LDiv.lDiv
+macro_rules |  `($x ∖ $y) => `(binop% LDiv.lDiv $x $y)
 
-  instance CatLDiv.{q} : LDiv (Cat.{q}) where
-    lDiv := lslash
-  theorem _checkCatLDiv : ((@NP Nat) ∖ S) = lslash (@NP Nat) S := by rfl
-end Notations
+instance CatLDiv.{q} : LDiv (Cat.{q}) where
+  lDiv := lslash
+theorem _checkCatLDiv : ((@NP Nat) ∖ S) = lslash (@NP Nat) S := by rfl
 instance CatMod.{q} : Mod (Cat.{q}) where
   mod := Ref
 
@@ -107,10 +105,10 @@ instance ADJHeytingAlgebra (P:Type u)[HeytingAlgebra P]{T}{n} : SurfaceHeytingAl
 instance SHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n} : SurfaceHeytingAlgebra P n S where
   combineProps op d1 d2 := op d1 d2
 
-instance lSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (@lslash C C') where
+instance lSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (C ∖ C') where
   combineProps op d1 d2 := fun x => SurfaceHeytingAlgebra.combineProps n op (d1 x) (d2 x)
 
-instance rSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (@rslash C' C) where
+instance rSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (C' / C) where
   combineProps op d1 d2 := fun x => SurfaceHeytingAlgebra.combineProps n op (d1 x) (d2 x)
 
 class lexicon (P : Type u) (w:String) (c:Cat) where
@@ -118,7 +116,7 @@ class lexicon (P : Type u) (w:String) (c:Cat) where
 attribute [simp] lexicon.denotation
 
 
-instance coordLexicon (P:Type)[HeytingAlgebra P](w:String) (C:Cat)[Coordinator P w][SurfaceHeytingAlgebra P (Nat.succ (Nat.succ (Nat.succ Nat.zero))) C] : lexicon P w (lslash C (rslash C C)) where
+instance coordLexicon (P:Type)[HeytingAlgebra P](w:String) (C:Cat)[Coordinator P w][SurfaceHeytingAlgebra P (Nat.succ (Nat.succ (Nat.succ Nat.zero))) C] : lexicon P w (C ∖ (C / C)) where
   denotation := fun L R => SurfaceHeytingAlgebra.combineProps 3 (Coordinator.denoteCoord w) L R
 -- We don't need the other associativity, as it can be recovered by shifting
 
@@ -139,10 +137,10 @@ instance SynthLex (P:Type u){w:String}{C:Cat}[l:lexicon P w C] : Synth P (Contex
   denotation := lexicon.denotation w
   stringRep := "lexicon<"++w++":"++ (reprPrec C 0) ++">"
 
-instance SynthRApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 (rslash c1 c2)][R:Synth P s2 c2] : Synth P (s1#s2) c1 where
-  denotation := @Synth.denotation P s1 (rslash c1 c2) L (Synth.denotation s2)
+instance SynthRApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 (c1 / c2)][R:Synth P s2 c2] : Synth P (s1#s2) c1 where
+  denotation := @Synth.denotation P s1 (c1 / c2) L (Synth.denotation s2)
   stringRep := "(SynthRApp "++L.stringRep++" "++R.stringRep++")"
-instance SynthLApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 c1][R:Synth P s2 (lslash c1 c2)] : Synth P (s1#s2) c2 where
+instance SynthLApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 c1][R:Synth P s2 (c1 ∖ c2)] : Synth P (s1#s2) c2 where
   denotation := R.denotation _ (L.denotation)
   stringRep := "(SynthLApp "++L.stringRep++" "++R.stringRep++")"
 --  denotation := @Synth.denotation P _ _ _ R (Synth.denotation s1)
@@ -153,14 +151,14 @@ instance Reassoc' (P:Type u){s1 s2 s3 c}[pre:Synth P ((s1 # s2) # s3) c] : Synth
   denotation := pre.denotation
   stringRep := "(Reassoc' "++pre.stringRep++")"
 
-instance SynthShift (P:Type u){s c l r}[L:Synth P s (lslash l (rslash c r))] : Synth P s (rslash (lslash l c) r) where
+instance SynthShift (P:Type u){s c l r}[L:Synth P s (l ∖ (c / r))] : Synth P s ((l ∖ c) / r) where
   denotation xr xl := L.denotation s xl xr
   stringRep := "(SynthShift "++L.stringRep++")"
 
-instance RComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (rslash c1 c2)][R:Synth P s' (rslash c2 c3)] : Synth P (s # s') (rslash c1 c3) where
+instance RComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (c1 / c2)][R:Synth P s' (c2 / c3)] : Synth P (s # s') (c1 / c3) where
   denotation x := L.denotation _ (R.denotation _ x)
   stringRep := "(RComp "++L.stringRep++" "++R.stringRep++")"
-instance LComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (lslash c1 c2)][R:Synth P s' (lslash c2 c3)] : Synth P (s # s') (lslash c1 c3) where
+instance LComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (c1 ∖ c2)][R:Synth P s' (c2 ∖ c3)] : Synth P (s # s') (c1 ∖ c3) where
   denotation x := R.denotation _ (L.denotation _ x)
   stringRep := "(LComp "++L.stringRep++" "++R.stringRep++")"
 
@@ -173,8 +171,8 @@ instance LComp (P:Type u){s s' c1 c2 c3}[L:Synth P s (lslash c1 c2)][R:Synth P s
 
 -- English-specific lifting rules
 -- Montague-style lifting for GQs in object position
-instance MLift (H:Type u){T U:Type u}{s}[sem:Synth H s (rslash (lslash (@NP T) S) (@NP U))] :
-  Synth H s (rslash (lslash (@NP T) S) (rslash S (lslash (@NP U) S))) where 
+instance MLift (H:Type u){T U:Type u}{s}[sem:Synth H s (((@NP T) ∖ S) / (@NP U))] :
+  Synth H s (((@NP T) ∖ S) / (S / ((@NP U) ∖ S))) where 
   stringRep := "(MLift "++sem.stringRep++")"
   denotation := fun P x => P (fun y => sem.denotation _ y x)
 
@@ -185,31 +183,31 @@ instance MLift (H:Type u){T U:Type u}{s}[sem:Synth H s (rslash (lslash (@NP T) S
 namespace Anaphora
   -- Slightly simplified (concretized) Jacobson-style extraction (e.g., for anaphora), per Jaeger (p100)
   -- Jacobson restricts the automatic raising to cases where the extraction is a NP, which is all we need now, and also prevents these from completely trashing performance with unconstrained search
-  local instance (priority := low) GR {P:Type u}[HeytingAlgebra P]{X A B}{C:Type u}[base:Synth P X (rslash A B)]
-    : Synth P X (rslash (A % (@NP C)) (B % (@NP C))) where
+  local instance (priority := low) GR {P:Type u}[HeytingAlgebra P]{X A B}{C:Type u}[base:Synth P X (A / B)]
+    : Synth P X ((A % (@NP C)) / (B % (@NP C))) where
     denotation := fun x y => base.denotation _ (x y)
     stringRep := "(G> "++base.stringRep++")"
-  local instance (priority := low) GL {P:Type u}[HeytingAlgebra P]{X A B}{C:Type u}[base:Synth P X (lslash B A)]
-    : Synth P X (lslash (B % (@NP C)) (A % (@NP C))) where
+  local instance (priority := low) GL {P:Type u}[HeytingAlgebra P]{X A B}{C:Type u}[base:Synth P X (B ∖ A)]
+    : Synth P X ((B % (@NP C)) ∖ (A % (@NP C))) where
     denotation := fun x y => base.denotation _ (x y)
     stringRep := "(G< "++base.stringRep++")"
   
-  local instance (priority := low) ZRR {P:Type u}[HeytingAlgebra P]{X A B C}[base:Synth P X (rslash (rslash A (@NP B)) C)]
-    : Synth P X (rslash (rslash A (@NP B)) (C % (@NP B))) where
+  local instance (priority := low) ZRR {P:Type u}[HeytingAlgebra P]{X A B C}[base:Synth P X ((A / (@NP B)) / C)]
+    : Synth P X ((A / (@NP B)) / (C % (@NP B))) where
     denotation := fun x y => base.denotation _ (x y) y
     stringRep := "(Z>> "++base.stringRep++")"
-  local instance (priority := low) ZLR {P:Type u}[HeytingAlgebra P]{X A B C}[base:Synth P X (rslash (lslash (@NP B) A) C)]
-    : Synth P X (rslash (lslash (@NP B) A) (C % (@NP B))) where
+  local instance (priority := low) ZLR {P:Type u}[HeytingAlgebra P]{X A B C}[base:Synth P X (((@NP B) ∖ A) / C)]
+    : Synth P X (((@NP B) ∖ A) / (C % (@NP B))) where
     denotation := fun x y => base.denotation _ (x y) y
     stringRep := "(Z<> "++base.stringRep++")"
   local instance (priority := low) ZRL {P:Type u}[HeytingAlgebra P]{X A B C}
-    [base:Synth P X (lslash C (rslash A (@NP B)))]
-    : Synth P X (lslash (C % (@NP B)) (rslash A (@NP B))) where
+    [base:Synth P X (C ∖ (A / (@NP B)))]
+    : Synth P X ((C % (@NP B)) ∖ (A / (@NP B))) where
     denotation := fun x y => base.denotation _ (x y) y
     stringRep := "(Z>< "++base.stringRep++")"
   local instance (priority := low) ZLL {P:Type u}[HeytingAlgebra P]{X A B C}
-    [base:Synth P X (lslash C (lslash (@NP B) A))]
-    : Synth P X (lslash (C % (@NP B)) (lslash (@NP B) A)) where
+    [base:Synth P X (C ∖ ((@NP B) ∖ A))]
+    : Synth P X ((C % (@NP B)) ∖ ((@NP B) ∖ A)) where
     denotation := fun x y => base.denotation _ (x y) y
     stringRep := "(Z<< "++base.stringRep++")"
 
@@ -223,44 +221,44 @@ namespace Anaphora
   -/
   /-- A condensation of `GR` and `SynthRApp` -/
   scoped instance AppGR {P:Type u}[HeytingAlgebra P]{X Y A B C}
-    [f:Synth P X (rslash A B)][arg:Synth P Y (B % (@NP C))]
+    [f:Synth P X (A / B)][arg:Synth P Y (B % (@NP C))]
     : Synth P (X # Y) (A % (@NP C)) where
     denotation := fun c => f.denotation _ (arg.denotation _ c)
     stringRep := "(AppGR "++f.stringRep++" "++arg.stringRep++")"
   /-- A condensation of `GL` and `SynthLApp` -/
   scoped instance AppGL {P:Type u}[HeytingAlgebra P]{X Y A B C}
-    [arg:Synth P X (B % (@NP C))][f:Synth P Y (lslash B A)]
+    [arg:Synth P X (B % (@NP C))][f:Synth P Y (B ∖ A)]
     : Synth P (X # Y) (A % (@NP C)) where
     denotation := fun c => f.denotation _ (arg.denotation _ c)
     stringRep := "(AppGL "++f.stringRep++" "++arg.stringRep++")"
   scoped instance AppZRR {P:Type u}[HeytingAlgebra P]{X Y A B C}
-    [f:Synth P X (rslash (rslash A (@NP B)) C)][arg:Synth P Y (C % (@NP B))]
-    : Synth P (X # Y) (rslash A (@NP B)) where
+    [f:Synth P X ((A / (@NP B)) / C)][arg:Synth P Y (C % (@NP B))]
+    : Synth P (X # Y) (A / (@NP B)) where
     denotation := fun n => f.denotation _ (arg.denotation _ n) n
     stringRep := "(AppZRR "++f.stringRep++" "++arg.stringRep++")"
   theorem AppZRR_conservative {P X Y A B C}[HeytingAlgebra P]
-    (f:Synth P X (rslash (rslash A (@NP B)) C))(arg:Synth P Y (C % (@NP B)))
+    (f:Synth P X ((A / (@NP B)) / C))(arg:Synth P Y (C % (@NP B)))
     : (SynthRApp (L := ZRR (base:=f)) (R := arg)).denotation = (AppZRR (f:=f) (arg:=arg)).denotation :=
       by simp
   scoped instance AppZLR {P:Type u}[HeytingAlgebra P]{X Y A B C}
-    [f:Synth P X (rslash (lslash (@NP B) A) C)][arg:Synth P Y (C % (@NP B))]
-    : Synth P (X # Y) (lslash (@NP B) A) where
+    [f:Synth P X (((@NP B) ∖ A) / C)][arg:Synth P Y (C % (@NP B))]
+    : Synth P (X # Y) ((@NP B) ∖ A) where
     denotation := fun n => f.denotation _ (arg.denotation _ n) n
     stringRep := "(AppZLR "++f.stringRep++" "++arg.stringRep++")"
   scoped instance AppZRL {P:Type u}[HeytingAlgebra P]{X Y A B C}
-    [arg:Synth P X (C % (@NP B))][f:Synth P Y (lslash C (rslash A (@NP B)))]
-    : Synth P (X # Y) (rslash A (@NP B)) where
+    [arg:Synth P X (C % (@NP B))][f:Synth P Y (C ∖ (A / (@NP B)))]
+    : Synth P (X # Y) (A / (@NP B)) where
     denotation := fun n => f.denotation _ (arg.denotation _ n) n
     stringRep := "(AppZRL "++f.stringRep++" "++arg.stringRep++")"
   scoped instance AppZLL {P:Type u}[HeytingAlgebra P]{X Y A B C}
-    [arg:Synth P X (C % (@NP B))][f:Synth P Y (lslash C (lslash (@NP B) A))]
-    : Synth P (X # Y) (rslash A (@NP B)) where
+    [arg:Synth P X (C % (@NP B))][f:Synth P Y (C ∖ ((@NP B) ∖ A))]
+    : Synth P (X # Y) (A / (@NP B)) where
     denotation := fun n => f.denotation _ (arg.denotation _ n) n
     stringRep := "(AppLRL "++f.stringRep++" "++arg.stringRep++")"
 
   -- For now we'll keep the word 'the' under wraps as well
-  scoped instance (priority := high) the_lex {P}[HeytingAlgebra P]{T}: lexicon P "the" (rslash (@NP T % @NP T) (@CN T)) where
-    denotation := fun cn x => x
+  scoped instance (priority := high) the_lex {P}[HeytingAlgebra P]{T}: lexicon P "the" ((@NP T % @NP T) / (@CN T)) where
+    denotation := fun _cn x => x
   /- Another difficulty here is that for modified CNs (those that don't just denote true), this definition discards the restriction --- e.g., 'the even number' could resolve to an 'odd number'!
 
   One option would be to tweak CNs again to have them also reflect their predicate into the typeclass unification problem. But that will lead to problems with TC search failing for equivalent but not definitionally equal predicates (even positive vs positive even).
