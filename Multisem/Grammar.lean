@@ -38,8 +38,8 @@ class LDiv.{q} (α : Type q) where
 attribute [simp] LDiv.lDiv
 
 -- CRITICAL: This is not simply backslash, but \setminus! Lean reserves the backslash character because it's used by all Lean editors for unicode lead character
-infixr:70 " ∖ " => LDiv.lDiv
-macro_rules |  `($x ∖ $y) => `(binop% LDiv.lDiv $x $y)
+infixr:70 " ∖ " => lslash --LDiv.lDiv
+--macro_rules |  `($x ∖ $y) => `(binop% lslash $x $y)--`(binop% LDiv.lDiv $x $y)
 
 instance CatLDiv.{q} : LDiv (Cat.{q}) where
   lDiv := lslash
