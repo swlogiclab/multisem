@@ -324,16 +324,16 @@ namespace sort_specs
 
   instance sorting : lexicon Prop "sorting" (@ADJ  (List Nat -> List Nat)) where
     denotation := fun f => ∀ l, sorted (f l)
-  instance sorts_lex : lexicon Prop "sorts" (((@NP (List Nat -> List Nat)) ∖ S) / (@NP (List Nat))) where
+  instance sorts_lex : lexicon Prop "sorts" (((@NP (List Nat -> List Nat)) ∖ S) // (@NP (List Nat))) where
     denotation obj subj := sorted (subj obj)
 
-  instance permutation_lifted {A B : Type}: lexicon Prop "permutation" ((@CN (A -> B -> List Nat)) / (@PP (A -> B -> List Nat) PPType.OF)) where
+  instance permutation_lifted {A B : Type}: lexicon Prop "permutation" ((@CN (A -> B -> List Nat)) // (@PP (A -> B -> List Nat) PPType.OF)) where
     denotation other f := ∀ a b, Permutation (other a b) (f a b)
 
 
-  instance insertion_func : lexicon Prop "insertion" ((@NP (List Nat -> List Nat)) / (@PP Nat PPType.OF)) where
+  instance insertion_func : lexicon Prop "insertion" ((@NP (List Nat -> List Nat)) // (@PP Nat PPType.OF)) where
     denotation pp := insert pp
-  instance maintains_lex : lexicon Prop "maintains" (((@NP (List Nat -> List Nat)) ∖ S) / (@NP (List Nat -> Prop))) where
+  instance maintains_lex : lexicon Prop "maintains" (((@NP (List Nat -> List Nat)) ∖ S) // (@NP (List Nat -> Prop))) where
     denotation prop f := ∀ x, prop x -> prop (f x)
 
   -- Long long term, we could bake in some morphology that lifts 'sorted' from ADJ to 'sortedness' referring to the underlying predicate
@@ -343,11 +343,11 @@ namespace sort_specs
   section DebuggingExample
     def _check := pspec [|insertion of three maintains sortedness|]
     #check (any_ppobject (A:=(List Nat)) (C:=@NP (List Nat -> List Nat)))
-    def insertion_of := dbgspecwitness Prop [|insertion of|] ((@NP (List Nat -> List Nat)) / (@NP Nat))
-    def any_natural {C:Cat} := dbgspecwitness Prop [|any natural|] ((C / (@NP Nat)) ∖ (S / (C ∖ S)))
-    def any_natural_manual {C:Cat} : Synth Prop [|any natural|] ((C / (@NP Nat)) ∖ (S / (C ∖ S))) :=
+    def insertion_of := dbgspecwitness Prop [|insertion of|] ((@NP (List Nat -> List Nat)) // (@NP Nat))
+    def any_natural {C:Cat} := dbgspecwitness Prop [|any natural|] ((C // (@NP Nat)) ∖ (S // (C ∖ S)))
+    def any_natural_manual {C:Cat} : Synth Prop [|any natural|] ((C // (@NP Nat)) ∖ (S // (C ∖ S))) :=
       SynthRApp (L:=SynthLex (l:= any_ppobject)) (R:=SynthLex (l:= natural_lex))
-    def insertion_of_any_natural := dbgspec [|insertion of any natural|] (S / ((@NP (List Nat -> List Nat)) ∖ S))
+    def insertion_of_any_natural := dbgspec [|insertion of any natural|] (S // ((@NP (List Nat -> List Nat)) ∖ S))
     def maintains_sortedness := dbgspec [| maintains sortedness |] ((@NP (List Nat -> List Nat)) ∖ S)
   end DebuggingExample
 
