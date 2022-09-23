@@ -38,6 +38,11 @@ class LDiv.{q} (α : Type q) where
 attribute [simp] LDiv.lDiv
 
 -- CRITICAL: This is not simply backslash, but \setminus! Lean reserves the backslash character because it's used by all Lean editors for unicode lead character
+/-- The idiomatic way to do operator overloading in Lean
+    is to define the operator as a typeclass operation.
+    When we do this for both left and right slash, it nearly doubles
+    parse times. Defining ∖ directly in terms of `lslash` recovers half that slow-down. Can we redefine the / macro to avoid `HDiv`?
+-/
 infixr:70 " ∖ " => lslash --LDiv.lDiv
 --macro_rules |  `($x ∖ $y) => `(binop% lslash $x $y)--`(binop% LDiv.lDiv $x $y)
 
