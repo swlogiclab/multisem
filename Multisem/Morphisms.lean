@@ -3,7 +3,6 @@ import Multisem.HeytingAlgebras
 import Multisem.TemporalLogic
 import Multisem.Text.Macros
 import Multisem.Lexicon
-import Multisem.CaseStudies.VFA
 open Cat
 
 

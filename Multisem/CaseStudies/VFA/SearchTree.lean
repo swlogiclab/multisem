@@ -1,51 +1,8 @@
 import Multisem.Text.Macros
 import Multisem.Lexicon
+import Multisem.CaseStudies.VFA.Sort
 
 universe u v
-
-namespace sort
-  open List
-  open Option
-  def insert (i : Nat) (l : List Nat) :=
-    match l with
-    | [] => [i]
-    | h :: t => if i <= h then i :: h :: t else h :: insert i t
-  def sort (l : List Nat) : List Nat :=
-    match l with
-    | [] => []
-    | h :: t => insert h (sort t)
-
-  inductive sorted : List Nat -> Prop :=
-  | sorted_nil : sorted []
-  | sorted_1 : ∀ x, sorted [x]
-  | sorted_cons : ∀ x y l, x ≤ y -> sorted (y :: l) -> sorted (x :: y :: l)
-
-  #check List.get!
-  def sorted'' (al : List Nat) := forall i j, i < j -> j < List.length al -> List.get! al i ≤ List.get! al j
-  def sorted' (al : List nat) := forall i j iv jv,
-    i < j -> List.get? al i = some iv -> List.get? al j = some jv
-
-  axiom Permutation {A : Type u}: List A -> List A -> Prop
-
-  def is_a_sorting_algorithm (f: List Nat -> List Nat) := ∀ al, Permutation al (f al) ∧ sorted (f al)
-
-  -- Prove that insertion maintains sortedness
-  def insert_sorted_spec := ∀ a l, sorted l -> sorted (insert a l)
-  -- Prove that insertion sort makes a list sorted
-  def sort_sorted_spec := ∀ l, sorted (sort l)
-  -- No explicit English for this one:
-  def insert_perm_spec := ∀ x l, Permutation (x :: l) (insert x l)
-  -- Prove that sort is a permutation
-  def sort_perm_spec := ∀ l, Permutation l (sort l)
-  -- No explicit English
-  def insertion_sort_correct_spec := is_a_sorting_algorithm sort
-
-  -- No explicit English
-  def sorted_sorted' := ∀ al, sorted al → sorted' al
-  def sorted'_sorted := ∀ al, sorted' al → sorted al
-
-  -- Omitting the optional section on Proving Correctness from the Alternative Spec
-end sort
 
 section searchtree
 
@@ -70,10 +27,11 @@ section searchtree
   open tree
 
   def empty_tree {V : Type u} : @tree V := E
+
   def bound {V : Type u} (x : key) (t : @tree V) :=
     match t with
     | E => false
-    | T l y v r => if x < y then bound x l
+    | T l y _v r => if x < y then bound x l
                    else if x > y then bound x r
                    else true
   def lookup {V : Type u} (d : V) (x : key) (t : @tree V) : V :=
@@ -307,103 +265,93 @@ section searchtree
 
 end searchtree
 
-namespace sort_specs
-  open sort
+section searchtree_specs
   open Cat
+  /-- A temp hack to sketch specs without asking Lean to synthesize them -/
+  axiom untranslated : ∀ (P:Type u) (t:ContextTree String), Synth P t S
 
-  lex sorted for Prop as (@ADJ (List Nat))
-  lex sort for Prop as (@NP (List Nat -> List Nat))
-  lex insert for Prop as (@NP (Nat -> List Nat -> List Nat))
-  instance cons_lex {T:Type}: lexicon Prop "cons" (@NP (T -> List T -> List T)) where
-    denotation := List.cons
+  instance BST_CN {V:Type} : lexicon Prop "BST" (@CN (@tree V)) where
+    denotation := BST
+  -- This notion of binding is contxt/program-specific
+  instance binding_CN {V:Type} : lexicon Prop "binding" (@CN (key × V)) where
+    denotation := λ _ => True
+  instance elements_of_NP {V:Type} : lexicon Prop "elements" ((@NP (List (key \times V))) // (@PP (@tree V) PPType.OF))
 
-  instance permutation_noun {T:Type}: lexicon Prop "permutation" (@CN (List T -> List T)) where
-    denotation := fun f => ∀ (l:List T), Permutation l (f l)
-  instance permuting_adj {T:Type} : lexicon Prop "permuting" (@ADJ (List T -> List T)) where
-    denotation := fun f => ∀ (l:List T), Permutation l (f l)
+  -- Original: The empty tree is a BST
+  noncomputable def empty_tree_BST_spec' := untranslated Prop [|the empty tree is a BST|]
 
-  instance sorting : lexicon Prop "sorting" (@ADJ  (List Nat -> List Nat)) where
-    denotation := fun f => ∀ l, sorted (f l)
-  instance sorts_lex : lexicon Prop "sorts" (((@NP (List Nat -> List Nat)) ∖ S) // (@NP (List Nat))) where
-    denotation obj subj := sorted (subj obj)
+  -- Original: insert preserves any node predicate
+  noncomputable def ForallT_insert_spec' := untranslated Prop [|insert preserves any node predicate|]
 
-  instance permutation_lifted {A B : Type}: lexicon Prop "permutation" ((@CN (A -> B -> List Nat)) // (@PP (A -> B -> List Nat) PPType.OF)) where
-    denotation other f := ∀ a b, Permutation (other a b) (f a b)
+  -- No explicit English
+  -- Candidate: inserting any key and any value into any BST yields a BST
+  noncomputable def insert_BST_spec' := untranslated Prop [|inserting any key and any value into any BST yields a BST|]
 
+  -- No explicit English
+  -- Note: candidate will need to talk about the default. Should we define language for 'default' in this specific context?
+  noncomputable def lookup_empty_spec' := untranslated Prop [|looking up any key with any default in the empty tree yields the default|]
 
-  instance insertion_func : lexicon Prop "insertion" ((@NP (List Nat -> List Nat)) // (@PP Nat PPType.OF)) where
-    denotation pp := insert pp
-  instance maintains_lex : lexicon Prop "maintains" (((@NP (List Nat -> List Nat)) ∖ S) // (@NP (List Nat -> Prop))) where
-    denotation prop f := ∀ x, prop x -> prop (f x)
+  -- No explicit English
+  -- Note: checks that looking up a key just inserted finds the inserted value
+  -- Note: Still avoiding past tense
+  noncomputable def lookup_insert_eq_spec' := untranslated Prop [|TBD|]
 
-  -- Long long term, we could bake in some morphology that lifts 'sorted' from ADJ to 'sortedness' referring to the underlying predicate
-  instance sortedness_lex : lexicon Prop "sortedness" (@NP (List Nat -> Prop)) where
-    denotation := sorted
-  -- Sanity check: works, just need an updated lexical entry for 'any'
-  section DebuggingExample
-    def _check := pspec [|insertion of three maintains sortedness|]
-    #check (any_ppobject (A:=(List Nat)) (C:=@NP (List Nat -> List Nat)))
-    def insertion_of := dbgspecwitness Prop [|insertion of|] ((@NP (List Nat -> List Nat)) // (@NP Nat))
-    def any_natural {C:Cat} := dbgspecwitness Prop [|any natural|] ((C // (@NP Nat)) ∖ (S // (C ∖ S)))
-    def any_natural_manual {C:Cat} : Synth Prop [|any natural|] ((C // (@NP Nat)) ∖ (S // (C ∖ S))) :=
-      SynthRApp (L:=SynthLex (l:= any_ppobject)) (R:=SynthLex (l:= natural_lex))
-    def insertion_of_any_natural := dbgspec [|insertion of any natural|] (S // ((@NP (List Nat -> List Nat)) ∖ S))
-    def maintains_sortedness := dbgspec [| maintains sortedness |] ((@NP (List Nat -> List Nat)) ∖ S)
-  end DebuggingExample
+  -- No explicit English
+  -- Note: exact same spec as previous: TODO check I didn't translate it incorrectly from Coq, which I must have, otherwise why have the second def?
+  -- Note: if it is slightly different, will make a good pairwise example
+  noncomputable def lookup_insert_eq'_spec' := untranslated Prop [|TBD|]
 
-  -- Original was: insertion maintains sortedness
-  -- Candidate: insertion of any natural maintains sortedness
-  #print insert_sorted_spec
-  def insert_sorted_spec' : 
-    insert_sorted_spec ->
-    pspec [| insertion of any natural maintains sortedness |] :=
-  by simp [insert_sorted_spec]
-     intro H 
-     apply H
+  -- No explicit English
+  -- Note: requires expressing inequality; natural phrasing would say 'not equal'
+  noncomputable def lookup_insert_neq_spec' := untranslated Prop [|TBD|]
 
-  -- Original was: insertion sort makes a list sorted
-  -- This use of "a" is universal, rather than existential, let's switch to any
-  -- This original is actually ambiguous between the universal and existential reading of "a", so the rewrite improves precision
-  -- Proposal is: sort sorts any list
-  -- Reasoning: 'makes' here would normally suggest the list is being *mutated*, which of course it is not. Instead, we'd like to be more explicit about it returning a (possibly distinct) sorted list.
-  #print sort_sorted_spec
-  def sort_sorted_spec' : sort_sorted_spec -> pspec [| sort sorts any list of naturals|] :=
-    by simp [sort_sorted_spec]
-       intro H 
-       apply H
+  -- Omitting Exercise 3 (bound_correct) b/c it's a homework assignment, and we don't want it to become public.
+  -- BUT: Should translate it
 
-  -- No original English, this is a proposal
-  -- We'll take the route of overloading permutation to talk about one function (into `List Nat`, since that's what `Permutation` is defined on) being a permutation of another if the results for any argument set is a permutation.
-  -- Technically we could generalize this for any number of arguments, but we'll just hard-code 2 for now.
-  -- Proposal: insert is a permutation of cons
-  #print insert_perm_spec
-  def insert_perm_spec' := pspec [| insert is a permutation of cons |]
+  -- Ah: apparently can't use 'if' since it's a keyword, not an ident
+  noncomputable def bound_default_spec' := untranslated Prop [|if bound returns false then lookup returns the default value|]
 
-  -- Handling the original
-  def sort_perm_spec' : 
-    sort_perm_spec -> pspec [| sort is a permutation |] :=
-    by simp [sort_perm_spec]
-       intro H
-       exists sort
+  -- Omitting: BSTs vs. Higher-order Functions (Optional)
+  -- Because we have not transfered the maps module this section relies on
 
-  -- No original English, but can intuit "sort is a sorting algorithm" from the identifier
-  -- We will split sorting from permuting
-  #print insertion_sort_correct_spec
-  #print is_a_sorting_algorithm
-  def insertion_sort_correct_spec' : insertion_sort_correct_spec -> pspec [| sort is a sorting permuting algorithm |] :=
-    by simp [insertion_sort_correct_spec]
-       simp [is_a_sorting_algorithm]
-       intro H
-       exists sort
-       simp
-       apply And.intro
-       . intro l
-         match (H l) with
-         | ⟨ _, b ⟩ => exact b
-       . intro l
-         match (H l) with
-         | ⟨ a, _ ⟩ => exact a
+  -- Note: Broken (as a pedagogical example)
+  -- Original: if a binding is in t then it's in elements t
+  noncomputable def elements_complete_broken_spec' := untranslated Prop [|TBD|]
 
-  -- This leaves the two lemmas proving equivalence of two sortedness defs
-  -- These appear to be below the level of detail we want in English
-end sort_specs
+  -- Note: Same original spec as for the intentionally broken example above, so makes for a good contrast
+  -- Original: if a binding is in t then it's in elements t
+  noncomputable def elements_complete_spec' := untranslated Prop [|TBD|]
+
+  -- Original: if a binding is in elements t then it's in t
+  noncomputable def elements_correct_spec' := untranslated Prop [|TBD|]
+
+  -- Original: if a property P holds of every node in a tree t, then that property holds of every pair in elements t. 
+  noncomputable def elements_preserves_forall_spec' := untranslated Prop [|TBD|]
+
+  -- Original: if all the keys in t are in a relation R with a distinguished key k', then any key k in elements t is also related by R to k'
+  noncomputable def elements_preserves_relation_spec' := untranslated Prop [|TBD|]
+
+  -- No explicit English
+  noncomputable def elements_complete_inverse_spec' := untranslated Prop [|TBD|]
+
+  -- Original: "prove the inverse" must be explicitly expanded
+  noncomputable def bound_value_spec' := untranslated Prop [|TBD|]
+
+  -- Original: "prove the main result" (TODO: there must be an explicit statement elsewhere for this)
+  noncomputable def elements_correct_inverse_spec' := untranslated Prop [|TBD|]
+
+  -- Original: inserting an intermediate value between two lists maintains sortedness
+  noncomputable def sorted_app_spec' := untranslated Prop [|TBD|]
+
+  -- Original: elements t is sorted by keys. Proceed by induction on the evidence that t is a BST. 
+  noncomputable def sorted_elements_spec' := untranslated Prop [|TBD|]
+
+  -- Original: if two lists are disjoint, appending them preserves NoDup
+  noncomputable def NoDup_append_spec := untranslated Prop [|if two lists are disjoint then appending them preserves NoDup|]
+
+  -- Original: there are no duplicate keys in the list returned by elements
+  noncomputable def elements_nodup_keys_spec' := untranslated Prop [|TBD|]
+
+  -- TODO: pick up with the specs after fast_elements_tr
+
+end searchtree_specs
