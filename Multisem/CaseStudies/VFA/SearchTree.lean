@@ -270,15 +270,52 @@ section searchtree_specs
   /-- A temp hack to sketch specs without asking Lean to synthesize them -/
   axiom untranslated : ∀ (P:Type u) (t:ContextTree String), Synth P t S
 
+  -- We'll handle polymorphism by using section variables for now
+  --variable (V : Type)
+  -- Okay, nevermind, that leads to tricky unification problems
+
+
   instance BST_CN {V:Type} : lexicon Prop "BST" (@CN (@tree V)) where
     denotation := BST
   -- This notion of binding is contxt/program-specific
   instance binding_CN {V:Type} : lexicon Prop "binding" (@CN (key × V)) where
     denotation := λ _ => True
   instance elements_of_NP {V:Type} : lexicon Prop "elements" ((@NP (List (key \times V))) // (@PP (@tree V) PPType.OF))
+  -- TODO{V:Type} : unclear if I need this, but useful for debugging
+  instance empty_tree_np {V:Type} : lexicon Prop "empty_tree" (@NP (@tree V)) where
+    denotation := empty_tree
+
+  instance tree_cn {V:Type} : lexicon Prop "tree" (@CN (@tree V)) where 
+    denotation := λ _ => True
+  -- TODO{V:Type} : still need to consider the ADJ --> CN/CN lift
+  instance empty_cn_mod {V:Type} : lexicon Prop "empty_tree" ((@CN (@tree V)) // (@CN (@tree V))) where
+    denotation := λ p x => p x ∧ x = empty_tree
+  
+  section general_instances_to_move
+    -- TODO: Here are some general-purpose lexicon entries to move
+    instance the_def_single_subj {T:Type} : lexicon Prop "the" ((S // ((@NP T) ∖ S)) // (@CN T)) where
+      denotation := λ p rest => ∃ (t:T), p t ∧ (∀ t', p t' -> t' = t) ∧ rest t
+    -- TODO: not really sure about how classic syntacticians would feel about this, which abuses the fact that adjectives and CNs have the same semantics
+    instance a_cn_as_adj {C:Cat}{H}[HeytingAlgebra H]{T:Type} 
+      : lexicon H "a" (((C // (@ADJ T)) ∖ C) // (@CN T)) where
+      denotation := λ cn other => other cn
+  end general_instances_to_move
 
   -- Original: The empty tree is a BST
-  noncomputable def empty_tree_BST_spec' := untranslated Prop [|the empty tree is a BST|]
+  -- This actually hits *another* use for 'a' beyond universal and existential quantification. This one seems to have a unique grammatical type, so there's no need to change it to avoid ambiguity.
+  -- This spec nearly works, except for choosing a V. Section variables don't help because it tries to instantiate the section variable. Manually specifying the type (e.g., Nat) lets the debug spec work, but we need this to work from text
+  def debugging_empty_tree_BST_spec' := pspec [|empty_tree is a BST|]
+  #print BST_CN
+  #print empty_tree_np
+  def debugging_empty_tree_BST_spec'' : Synth Prop [|empty_tree is a BST|] S :=
+    let et_lex := SynthLex (l:=empty_tree_np)
+    let bst_lex := SynthLex (l:=BST_CN)
+    let a_lex := SynthLex (l:=a_cn_as_adj) -- (C:=((@NP (@tree V)) ∖ S)))
+    let is_lex := SynthLex (l:=noun_is_adj_lex)
+    let is_a_bst := SynthLApp (L:= is_lex) (R:=(SynthRApp (L := a_lex) (R := bst_lex)))
+    SynthLApp (L:=et_lex) (R:=is_a_bst)
+
+  noncomputable def empty_tree_BST_spec' := pspec [|the empty tree is a BST|]
 
   -- Original: insert preserves any node predicate
   noncomputable def ForallT_insert_spec' := untranslated Prop [|insert preserves any node predicate|]
@@ -352,6 +389,31 @@ section searchtree_specs
   -- Original: there are no duplicate keys in the list returned by elements
   noncomputable def elements_nodup_keys_spec' := untranslated Prop [|TBD|]
 
-  -- TODO: pick up with the specs after fast_elements_tr
+  -- No explicit English, helper for next
+  noncomputable def fast_elements_tr_helper_spec' := untranslated Prop [|TBD|]
+
+  -- Original: fast_elements and elements compute the same function
+  -- Rather than just going for equality via function extensionality, let's go direct
+  noncomputable def fast_elements_eq_elements_spec' := untranslated Prop [|fast_elements and elements compute the same result for any tree |]
+
+  -- No explicit English, but alludes to `elements_correct_spec`
+  noncomputable def fast_elements_correct_spec' : Prop := sorry
+
+  -- An Algebraic Specification of Elements
+
+  -- No explicit English
+  -- This should work, modulo polymorphism over the value type, and reconsidering if we want to deal with plurals
+  noncomputable def elements_empty_spec' := untranslated Prop [|the elements of the empty tree are the empty list|]
+
+
+  -- No explicit English
+  -- Part of the point of this section of the chapter is to basically say this kind of spec is hideous and should be avoided
+  noncomputable def kvs_insert_split_spec' : Prop := sorry
+
+  -- No explicit English
+  noncomputable def kvs_insert_elements_spec' := untranslated Prop [|on every BST every key and every value the elements of inserting the key and value into the BST are the same as kvs_inserting into the elements of the BST|]
+
+  
+
 
 end searchtree_specs
