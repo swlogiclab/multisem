@@ -301,9 +301,18 @@ section searchtree_specs
       denotation := λ cn other => other cn
   end general_instances_to_move
 
+  -- This is an interesting experiment with an approach to lifting polymorphism out of subterms, but I really need to try writing out and using some of the lifted application rules to make sure I don't hit problems with some cats being under a function binder.... even if it works with explicit application it might work poorly with unification
+  axiom polycat.{w} : (Type w -> Cat) -> Cat
+  macro_rules |  `($x ↑ $y) => `(polycat (fun $y => $x))--`(binop% LDiv.lDiv $x $y)
+  #check (S ↑ x)
+  axiom polycat_hack.{w} : ∀ (f:Type w -> Cat), (∀ (T:Type w), interp Prop (f t)) -> interp Prop (polycat f)
+  instance empty_tree_poly : lexicon Prop "tree" ((@NP (@tree V)) ↑ V) where
+    denotation := polycat_hack (fun V => ((@NP (@tree V)) ↑ V)) (fun T => @empty_tree T)
+
   -- Original: The empty tree is a BST
   -- This actually hits *another* use for 'a' beyond universal and existential quantification. This one seems to have a unique grammatical type, so there's no need to change it to avoid ambiguity.
   -- This spec nearly works, except for choosing a V. Section variables don't help because it tries to instantiate the section variable. Manually specifying the type (e.g., Nat) lets the debug spec work, but we need this to work from text
+  -- maybe we could have some of these act like generalize quantifiers to introduce quantification? But then that needs to show up in the categories of the rest of the sentence
   def debugging_empty_tree_BST_spec' := pspec [|empty_tree is a BST|]
   #print BST_CN
   #print empty_tree_np
