@@ -1,3 +1,4 @@
+/-- The classic Heyting Algebra -/
 class HeytingAlgebra.{u} (P:Type u) where
   top : P
   bottom : P
@@ -9,6 +10,10 @@ attribute [simp] HeytingAlgebra.bottom
 attribute [simp] HeytingAlgebra.conj
 attribute [simp] HeytingAlgebra.disj
 attribute [simp] HeytingAlgebra.impl
+
+/-- A child class which imposes the actual laws.
+  We omit the laws from `HeytingAlgebra` because we're mostly interested in the interface to the logic, not necessarily its properties. It is convenient to be able to define just the basic HA structure without proving all the laws, when we're just axiomatizing existing well-known logics.
+-/
 class HeytingAlgebraLaws (P : Type u) extends HeytingAlgebra P where
   conj_comm : ∀ x y, conj x y = conj y x
   conj_assoc : ∀ x y z, conj (conj x y) z = conj x (conj y z)
@@ -26,6 +31,22 @@ class HeytingAlgebraMorphismLaws (P : Type u)[HeytingAlgebra P](Q : Type v)[Heyt
   preserves_conj : ∀ x y, morph (HeytingAlgebra.conj x y) = HeytingAlgebra.conj (morph x) (morph y)
   preserves_disj : ∀ x y, morph (HeytingAlgebra.disj x y) = HeytingAlgebra.disj (morph x) (morph y)
   preserves_impl : ∀ x y, morph (HeytingAlgebra.impl x y) = HeytingAlgebra.impl (morph x) (morph y)
+
+/--
+  An intuitionistic version of a Polyadic Algebra.
+
+  This is one algebraic extension of Heyting Algebras to quantifiers.
+  We've gone intuitionistic by not assuming existentials and universals
+  are related by negation; the classic version due to Halmos is classical.
+
+  This is also a close cousin of the Cylindric Algebra, which is *approximately*
+  a Polyadic Algebra with an equality predicate. For the full details, see
+  - Galler, Bernard A. Cylindric and Polyadic Algebras.  Proceedings of the American Mathematical Society. Vol. 8, No. 1 (Feb., 1957), pp. 176-183.
+  - Halmos, Paul R. Transactions of the American Mathematical Society. Vol. 86, No. 1 (Sep., 1957), pp. 1-27.
+-/
+class PolyadicAlgebra.{u} (P : Type u) [HeytingAlgebra P] where
+  all : forall {T:Type u}, (T -> P) -> P
+  ex : forall {T:Type u}, (T -> P) -> P
 
 
 instance pointwiseHA (X : Type v)(H : Type u)[HeytingAlgebra H] : HeytingAlgebra (X -> H) where
@@ -57,3 +78,7 @@ instance PropHeyting : HeytingAlgebra Prop where
   conj x y := x ∧ y
   disj x y :=  x ∨ y
   impl x y := x -> y
+
+instance PropPolyadic : PolyadicAlgebra Prop where
+  all {T} f := ∀ (t:T), f t
+  ex {T} f := ∃ (t:T), f t
