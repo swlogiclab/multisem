@@ -309,6 +309,52 @@ section searchtree_specs
   instance empty_tree_poly : lexicon Prop "tree" ((@NP (@tree V)) ↑ V) where
     denotation := polycat_hack (fun V => ((@NP (@tree V)) ↑ V)) (fun T => @empty_tree T)
 
+  /- The following is an interesting approach, but doesn't work because Lean doesn't actually infer universals the way the syntax suggests-/
+  #check Synth.denotation
+  instance polysyn : [∀ T, Synth Prop ws ((@NP (@tree T)) ∖ S)] -> Synth Prop ws S where
+    denotation := (∀ (T:Type), (Synth.denotation ws (c:= ((@NP (@tree T)) ∖ S))) (@empty_tree T))
+    stringRep := "(polysyn "++(Synth.stringRep Prop ws (c:=((@NP (@tree Nat)) ∖ S)))++")"
+    --∀ T, Synth.denotation ws T
+  
+  section selfcontained
+  def fakeEven (i:Nat) : Prop := True
+  def fakeOdd (i:Nat) : Prop := False
+  class isNum (i:Nat) where
+    p : fakeEven i ∨ fakeOdd i
+  class hasP (P:Nat -> Prop) where
+    p : ∀ i, P i
+  instance hasNum : [∀ i, isNum i] -> hasP (fun x => fakeEven x ∨ fakeOdd x) where
+    p := by intro i
+            apply isNum.p
+  instance hasNum2 [sem:∀ i, isNum i] : hasP (fun x => fakeEven x ∨ fakeOdd x) where
+    p := by intro i
+            apply isNum.p
+  class proveUniv (P:Nat -> Prop) where
+    p := Prop
+  instance hasUniv' [sem:∀ i, isNum i] : proveUniv (fun x => fakeEven x ∨ fakeOdd x) where
+    p := (∀ (y:Nat), sem.p y)
+  instance hasUniv : [∀ i, isNum i] -> proveUniv (fun x => fakeEven x ∨ fakeOdd x) where
+    p := (∀ (y:Nat), isNum.p (i:=y))
+  end selfcontained
+
+  section selfcontained2
+  class isNum2 (i:Nat) where
+    p : Nat -> Prop
+  class proveUniv2 where
+    p := Prop
+  #check isNum2.p
+  instance hasUniv2' [sem:∀ i, isNum2 i] : proveUniv2  where
+    p := (∀ (y:Nat), isNum2.p y y)
+  end selfcontained2
+  
+  -- Total hack to see if this polymorphism approach has legs
+  -- Yes! This works! Now the question is how to generalize this appropriately
+  -- Perhaps via a Polylex class that indexes a word by a Type->Cat, plus left and right app rules like this? as in PolyLex w f and [∀ T, Synth Prop ws (f T ∖ S)] or similar?
+  instance polyhack : [∀ T, Synth Prop ws ((@NP (@tree T)) ∖ S)] -> Synth Prop ("empty_tree"#ws) S where
+    denotation := (∀ (T:Type), (Synth.denotation ws (c:= ((@NP (@tree T)) ∖ S))) (@empty_tree T))
+    stringRep := "(polysyn "++(Synth.stringRep Prop ws (c:=((@NP (@tree Nat)) ∖ S)))++")"
+
+
   -- Original: The empty tree is a BST
   -- This actually hits *another* use for 'a' beyond universal and existential quantification. This one seems to have a unique grammatical type, so there's no need to change it to avoid ambiguity.
   -- This spec nearly works, except for choosing a V. Section variables don't help because it tries to instantiate the section variable. Manually specifying the type (e.g., Nat) lets the debug spec work, but we need this to work from text
