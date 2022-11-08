@@ -269,26 +269,39 @@ section searchtree_specs
   open Cat
   /-- A temp hack to sketch specs without asking Lean to synthesize them -/
   axiom untranslated : ∀ (P:Type u) (t:ContextTree String), Synth P t S
+  
+  /-- `PolyArg` is a bit of a hack. What we'd really like here is to declare
+      a section variable, then locally declare relevant lexicon entries in
+      terms of the section variable, letting Lean treat the section variable
+      locally as a constant. I believe this is how Coq handles that. It is
+      *not* how Lean handles it. Instead Lean effectively solves the
+      typeclass resolution as if it were working *outside* the section, and
+      thus the section variable becomes a parameter to all definitions in the
+      section, which it then tries to infer... which of course doesn't work.
+      So instead we (1) must explicitly make each definition polymorphic, then
+      (2) tag the variables we want used for polymorphism, and (3) use lexicon
+      entries that are polymorphic in the obvious way *except* requiring this
+      tag. This then forces the typeclass resolution to use the correct type
+      variable.
+  -/
+  class PolyArg.{y} (T:Type y) where
 
-  -- We'll handle polymorphism by using section variables for now
-  --variable (V : Type)
-  -- Okay, nevermind, that leads to tricky unification problems
 
-
-  instance BST_CN {V:Type} : lexicon Prop "BST" (@CN (@tree V)) where
+  instance BST_CN {V:Type}[PolyArg V] : lexicon Prop "BST" (@CN (@tree V)) where
     denotation := BST
   -- This notion of binding is contxt/program-specific
-  instance binding_CN {V:Type} : lexicon Prop "binding" (@CN (key × V)) where
+  instance binding_CN {V:Type}[PolyArg V] : lexicon Prop "binding" (@CN (key × V)) where
     denotation := λ _ => True
-  instance elements_of_NP {V:Type} : lexicon Prop "elements" ((@NP (List (key \times V))) // (@PP (@tree V) PPType.OF))
+  instance elements_of_NP {V:Type}[PolyArg V] : lexicon Prop "elements" ((@NP (List (key × V))) // (@PP (@tree V) PPType.OF)) where
+    denotation := λ t => elements t
   -- TODO{V:Type} : unclear if I need this, but useful for debugging
-  instance empty_tree_np {V:Type} : lexicon Prop "empty_tree" (@NP (@tree V)) where
+  instance empty_tree_np {V:Type}[PolyArg V] : lexicon Prop "empty_tree" (@NP (@tree V)) where
     denotation := empty_tree
 
-  instance tree_cn {V:Type} : lexicon Prop "tree" (@CN (@tree V)) where 
+  instance tree_cn {V:Type}[PolyArg V] : lexicon Prop "tree" (@CN (@tree V)) where 
     denotation := λ _ => True
   -- TODO{V:Type} : still need to consider the ADJ --> CN/CN lift
-  instance empty_cn_mod {V:Type} : lexicon Prop "empty_tree" ((@CN (@tree V)) // (@CN (@tree V))) where
+  instance empty_cn_mod {V:Type}[PolyArg V] : lexicon Prop "empty_tree" ((@CN (@tree V)) // (@CN (@tree V))) where
     denotation := λ p x => p x ∧ x = empty_tree
   
   section general_instances_to_move
@@ -301,76 +314,140 @@ section searchtree_specs
       denotation := λ cn other => other cn
   end general_instances_to_move
 
-  -- This is an interesting experiment with an approach to lifting polymorphism out of subterms, but I really need to try writing out and using some of the lifted application rules to make sure I don't hit problems with some cats being under a function binder.... even if it works with explicit application it might work poorly with unification
-  axiom polycat.{w} : (Type w -> Cat) -> Cat
-  macro_rules |  `($x ↑ $y) => `(polycat (fun $y => $x))--`(binop% LDiv.lDiv $x $y)
-  #check (S ↑ x)
-  axiom polycat_hack.{w} : ∀ (f:Type w -> Cat), (∀ (T:Type w), interp Prop (f t)) -> interp Prop (polycat f)
-  instance empty_tree_poly : lexicon Prop "tree" ((@NP (@tree V)) ↑ V) where
-    denotation := polycat_hack (fun V => ((@NP (@tree V)) ↑ V)) (fun T => @empty_tree T)
-
-  /- The following is an interesting approach, but doesn't work because Lean doesn't actually infer universals the way the syntax suggests-/
-  #check Synth.denotation
-  instance polysyn : [∀ T, Synth Prop ws ((@NP (@tree T)) ∖ S)] -> Synth Prop ws S where
-    denotation := (∀ (T:Type), (Synth.denotation ws (c:= ((@NP (@tree T)) ∖ S))) (@empty_tree T))
-    stringRep := "(polysyn "++(Synth.stringRep Prop ws (c:=((@NP (@tree Nat)) ∖ S)))++")"
-    --∀ T, Synth.denotation ws T
   
-  section selfcontained
-  def fakeEven (i:Nat) : Prop := True
-  def fakeOdd (i:Nat) : Prop := False
-  class isNum (i:Nat) where
-    p : fakeEven i ∨ fakeOdd i
-  class hasP (P:Nat -> Prop) where
-    p : ∀ i, P i
-  instance hasNum : [∀ i, isNum i] -> hasP (fun x => fakeEven x ∨ fakeOdd x) where
-    p := by intro i
-            apply isNum.p
-  instance hasNum2 [sem:∀ i, isNum i] : hasP (fun x => fakeEven x ∨ fakeOdd x) where
-    p := by intro i
-            apply isNum.p
-  class proveUniv (P:Nat -> Prop) where
-    p := Prop
-  instance hasUniv' [sem:∀ i, isNum i] : proveUniv (fun x => fakeEven x ∨ fakeOdd x) where
-    p := (∀ (y:Nat), sem.p y)
-  instance hasUniv : [∀ i, isNum i] -> proveUniv (fun x => fakeEven x ∨ fakeOdd x) where
-    p := (∀ (y:Nat), isNum.p (i:=y))
-  end selfcontained
+  /- The hack with PolyArg works! -/
+  section polyarg_experiment
+    instance empty_tree_np_polyarg {V:Type}[PolyArg V]: lexicon Prop "empty_treeP" (@NP (@tree V)) where
+      denotation := empty_tree
+    def debugging_empty_tree_BST_spec_PA (T:Type) [PolyArg T]:= pspec [|empty_treeP is a BST|]
+    #check @empty_tree_np_polyarg
+    def debugging_empty_tree_BST_specPA (T:Type) [pa:PolyArg T]: Synth Prop [|empty_treeP is a BST|] S :=
+      let et_lex := SynthLex (l:=@empty_tree_np_polyarg T pa)
+      let bst_lex := SynthLex (l:=BST_CN)
+      let a_lex := SynthLex (l:=a_cn_as_adj) -- (C:=((@NP (@tree V)) ∖ S)))
+      let is_lex := SynthLex (l:=noun_is_adj_lex)
+      let is_a_bst := SynthLApp (L:= is_lex) (R:=(SynthRApp (L := a_lex) (R := bst_lex)))
+      SynthLApp (L:=et_lex) (R:=is_a_bst)
+  end polyarg_experiment
 
-  section selfcontained2
-  class isNum2 (i:Nat) where
-    p : Nat -> Prop
-  class proveUniv2 where
-    p := Prop
-  #check isNum2.p
-  instance hasUniv2' [sem:∀ i, isNum2 i] : proveUniv2  where
-    p := (∀ (y:Nat), isNum2.p y y)
-  end selfcontained2
+
+
+  --section variable_for_polymorphism_experiment
+  --  -- We'll handle polymorphism by using section variables for now
+  --  variable (VV : Type)
+  --  -- Okay, nevermind, that leads to tricky unification problems. I'd like this to just be held as a constant during inference, but Lean doesn't work that way.
+  --  instance empty_tree_np_attempt : lexicon Prop "empty_treeV" (@NP (@tree VV)) where
+  --    denotation := empty_tree
+  --  def debugging_empty_tree_BST_spec_VV := pspec [|empty_treeV is a BST|]
+  --  def debugging_empty_tree_BST_spec'' : Synth Prop [|empty_treeV is a BST|] S :=
+  --    -- This line fails because Lean tries to solve the unification as if not in a section, and then tries to provide an instantiation of VV and fails
+  --    let et_lex := SynthLex (l:=empty_tree_np_attempt)
+  --    let bst_lex := SynthLex (l:=BST_CN)
+  --    let a_lex := SynthLex (l:=a_cn_as_adj) -- (C:=((@NP (@tree V)) ∖ S)))
+  --    let is_lex := SynthLex (l:=noun_is_adj_lex)
+  --    let is_a_bst := SynthLApp (L:= is_lex) (R:=(SynthRApp (L := a_lex) (R := bst_lex)))
+  --    SynthLApp (L:=et_lex) (R:=is_a_bst)
+  --end variable_for_polymorphism_experiment
+
+  ---- This is an interesting experiment with an approach to lifting polymorphism out of subterms, but I really need to try writing out and using some of the lifted application rules to make sure I don't hit problems with some cats being under a function binder.... even if it works with explicit application it might work poorly with unification
+  --axiom polycat.{w} : (Type w -> Cat) -> Cat
+  --macro_rules |  `($x ↑ $y) => `(polycat (fun $y => $x))--`(binop% LDiv.lDiv $x $y)
+  --#check (S ↑ x)
+  --axiom polycat_hack.{w} : ∀ (f:Type w -> Cat), (∀ (T:Type w), interp Prop (f T)) -> interp Prop (polycat f)
+  --instance empty_tree_poly : lexicon Prop "tree" ((@NP (@tree V)) ↑ V) where
+  --  denotation := polycat_hack (fun V => ((@NP (@tree V)) ↑ V)) (fun T => @empty_tree T)
+
+  --/- The following is an interesting approach, but doesn't work because Lean doesn't actually infer universals the way the syntax suggests-/
+  --#check Synth.denotation
+  --instance polysyn : [∀ T, Synth Prop ws ((@NP (@tree T)) ∖ S)] -> Synth Prop ws S where
+  --  denotation := (∀ (T:Type), (Synth.denotation ws (c:= ((@NP (@tree T)) ∖ S))) (@empty_tree T))
+  --  stringRep := "(polysyn "++(Synth.stringRep Prop ws (c:=((@NP (@tree Nat)) ∖ S)))++")"
+  --  --∀ T, Synth.denotation ws T
+  
+  --section selfcontained
+  --def fakeEven (i:Nat) : Prop := True
+  --def fakeOdd (i:Nat) : Prop := False
+  --class isNum (i:Nat) where
+  --  p : fakeEven i ∨ fakeOdd i
+  --class hasP (P:Nat -> Prop) where
+  --  p : ∀ i, P i
+  --instance hasNum : [∀ i, isNum i] -> hasP (fun x => fakeEven x ∨ fakeOdd x) where
+  --  p := by intro i
+  --          apply isNum.p
+  --instance hasNum2 [sem:∀ i, isNum i] : hasP (fun x => fakeEven x ∨ fakeOdd x) where
+  --  p := by intro i
+  --          apply isNum.p
+  --class proveUniv (P:Nat -> Prop) where
+  --  p := Prop
+  --instance hasUniv' [sem:∀ i, isNum i] : proveUniv (fun x => fakeEven x ∨ fakeOdd x) where
+  --  p := (∀ (y:Nat), sem.p y)
+  --instance hasUniv : [∀ i, isNum i] -> proveUniv (fun x => fakeEven x ∨ fakeOdd x) where
+  --  p := (∀ (y:Nat), isNum.p (i:=y))
+  --end selfcontained
+
+  --section selfcontained2
+  --class isNum2 (i:Nat) where
+  --  p : Nat -> Prop
+  --class proveUniv2 where
+  --  p := Prop
+  --#check isNum2.p
+  --instance hasUniv2' [sem:∀ i, isNum2 i] : proveUniv2  where
+  --  p := (∀ (y:Nat), isNum2.p y y)
+  --end selfcontained2
   
   -- Total hack to see if this polymorphism approach has legs
   -- Yes! This works! Now the question is how to generalize this appropriately
   -- Perhaps via a Polylex class that indexes a word by a Type->Cat, plus left and right app rules like this? as in PolyLex w f and [∀ T, Synth Prop ws (f T ∖ S)] or similar?
+  -- TODO: This is the start of a longer-term solution, if we can properly lexicalize this, perhaps in an additional layer of grammar.
   instance polyhack : [∀ T, Synth Prop ws ((@NP (@tree T)) ∖ S)] -> Synth Prop ("empty_tree"#ws) S where
     denotation := (∀ (T:Type), (Synth.denotation ws (c:= ((@NP (@tree T)) ∖ S))) (@empty_tree T))
     stringRep := "(polysyn "++(Synth.stringRep Prop ws (c:=((@NP (@tree Nat)) ∖ S)))++")"
+    
+
+  /- This attempt to build a parallel category family parameterized by a type.
+     Base categories are indexed by a function from types to types, e.g. to allow saying `pCat.NP tree` to talk about trees polymorphically
+   -/
+  inductive pCat.{x} : Type (x+1) :=
+    | S
+    | NP : (Type x -> Type x) -> pCat
+    | CN : (Type x -> Type x) -> pCat
+    | rslash : pCat -> pCat -> pCat
+    | lslash : pCat -> pCat -> pCat
+    | inj : Cat.{x} -> pCat
+  @[simp]
+  def inst.{x} (c:pCat.{x}) (T:Type x) : Cat.{x} :=
+    match c with
+    | pCat.S => S
+    | pCat.NP x => @NP (x T)
+    | pCat.CN x => @CN (x T)
+    | pCat.rslash X Y => rslash (inst X T) (inst Y T)
+    | pCat.lslash X Y => rslash (inst X T) (inst Y T)
+    | pCat.inj C => C
+
+  /-- rawinterp for individual lexical semantics -/
+  @[simp]
+  def rawinterp.{x, y} (c:pCat.{x}) (H:Type y) : Type (y) :=
+    match c with
+    | pCat.S => H -- Don't want to lift this... can't denote props if we do that... could abstract the output type to be Type x for S and otherwise Type (x+1)... except the branches of that match need to have the same universe, so a lift goes in there...
+    | pCat.NP f => forall (T:Type x), interp H (@NP (f T))
+    | pCat.CN f => forall (T:Type x), interp H (@CN (f T))
+    | pCat.rslash X Y => (rawinterp Y H) -> (rawinterp X H)
+    | pCat.lslash X Y => (rawinterp X H) -> (rawinterp Y H)
+    | pCat.inj c => interp H c
+
+  class polylex.{x} (w:string) (C:pCat.{x}) where 
+    denotation : rawinterp C Prop
+
 
 
   -- Original: The empty tree is a BST
   -- This actually hits *another* use for 'a' beyond universal and existential quantification. This one seems to have a unique grammatical type, so there's no need to change it to avoid ambiguity.
   -- This spec nearly works, except for choosing a V. Section variables don't help because it tries to instantiate the section variable. Manually specifying the type (e.g., Nat) lets the debug spec work, but we need this to work from text
   -- maybe we could have some of these act like generalize quantifiers to introduce quantification? But then that needs to show up in the categories of the rest of the sentence
-  def debugging_empty_tree_BST_spec' := pspec [|empty_tree is a BST|]
-  #print BST_CN
-  #print empty_tree_np
-  def debugging_empty_tree_BST_spec'' : Synth Prop [|empty_tree is a BST|] S :=
-    let et_lex := SynthLex (l:=empty_tree_np)
-    let bst_lex := SynthLex (l:=BST_CN)
-    let a_lex := SynthLex (l:=a_cn_as_adj) -- (C:=((@NP (@tree V)) ∖ S)))
-    let is_lex := SynthLex (l:=noun_is_adj_lex)
-    let is_a_bst := SynthLApp (L:= is_lex) (R:=(SynthRApp (L := a_lex) (R := bst_lex)))
-    SynthLApp (L:=et_lex) (R:=is_a_bst)
+  def debugging_empty_tree_BST_spec' (T:Type)[PolyArg T]:= pspec [|empty_tree is a BST|]
 
-  noncomputable def empty_tree_BST_spec' := pspec [|the empty tree is a BST|]
+  -- Working hypothesis is that the entry for "the" is conflicting with the expectations of "a"
+  def empty_tree_BST_spec' (T:Type)[PolyArg T] := pspec [|the empty tree is a BST|]
 
   -- Original: insert preserves any node predicate
   noncomputable def ForallT_insert_spec' := untranslated Prop [|insert preserves any node predicate|]
