@@ -492,6 +492,7 @@ section searchtree_specs
   noncomputable def elements_complete_spec' := untranslated Prop [|TBD|]
 
   -- Original: if a binding is in elements t then it's in t
+  -- Note: This uses program expressions intermingled with text, so we need to adjust to just English
   noncomputable def elements_correct_spec' := untranslated Prop [|TBD|]
 
   -- Original: if a property P holds of every node in a tree t, then that property holds of every pair in elements t. 
