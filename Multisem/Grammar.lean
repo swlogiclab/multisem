@@ -9,7 +9,6 @@ The enumeration of supported prepositional phrase varieties for English
 -/
 inductive PPType : Type := | IN | INTO | TO | FROM | OF | OFN
 deriving instance Repr for PPType
-
 inductive Cat.{q} : Type (q+1)  :=
 | S : Cat
 | NP : forall {x:Type q}, Cat
@@ -19,6 +18,7 @@ inductive Cat.{q} : Type (q+1)  :=
 | Ref : Cat -> Cat -> Cat
 | rslash : Cat  -> Cat  -> Cat 
 | lslash : Cat  -> Cat  -> Cat 
+| Var : forall {x:Type q}, String -> Cat
 open Cat
 
 -- These are some currently-disabled notations for writing the slashes
@@ -54,7 +54,7 @@ theorem _checkCatLDiv : ((@NP Nat) ∖ S) = lslash (@NP Nat) S := by rfl
 instance CatMod.{q} : Mod (Cat.{q}) where
   mod := Ref
 
--- This deriving breaks if any of the category instances are explicit arguments, because in general it cannot print types
+-- This deriving breaks if any of the category instances are explicit arguments, because in general it cannot print types (or function expressions)
 deriving instance Repr for Cat
 #eval reprPrec (rslash (lslash S S) S) 234
 #eval (rslash (lslash S S) S)
@@ -74,6 +74,7 @@ def interp.{q} (P:Type q) (c:Cat.{q}) : Type q :=
   match c with
   | S => P
   | @NP x => x
+  | @Var x _ => x
   | @ADJ x => x -> P
   | rslash a b => interp P b -> interp P a
   | lslash a b => interp P a -> interp P b
@@ -118,9 +119,14 @@ instance lSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[Su
 instance rSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (C' // C) where
   combineProps op d1 d2 := fun x => SurfaceHeytingAlgebra.combineProps n op (d1 x) (d2 x)
 
-class lexicon (P : Type u) (w:String) (c:Cat) where
+class lexicon.{q} (P : Type q) (w:String) (c:Cat.{q}) where
   denotation : interp P c 
 attribute [simp] lexicon.denotation
+
+class NLVar (s:String) where
+
+instance inhabitedLexVar.{q} {P:Type q} {T : Type q} (w:String) [NLVar w] : lexicon P w ((@NP T) % (@Var T w)) where
+  denotation := λ x => x
 
 
 instance coordLexicon (P:Type)[HeytingAlgebra P](w:String) (C:Cat)[Coordinator P w][SurfaceHeytingAlgebra P (Nat.succ (Nat.succ (Nat.succ Nat.zero))) C] : lexicon P w (C ∖ (C // C)) where

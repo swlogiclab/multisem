@@ -89,7 +89,11 @@ section specs
      this text in isolation could mean
      `union a (union b c) = union a (union c b)`
      which is just a consequence of commutativity.
+     In fact, the entire property itself follows trivially from commutativity and associativity. The only way this makes sense to describe is as the naive transliteration of the formal spec.
+
+     Codex (davinci-002), prompted with a Coq comment, the core definitions, and a comment with this original description proves something equivalent to what's sought here, but it's worth noting that VFA and countless student solution attempts are in its training set!
   -/
+  -- I don't think this makes sense
   @[simp]
   def union_swap_raw := ∀ (a b c : multiset), union a (union b c) = union b (union a c)
   @[simp]
@@ -101,13 +105,27 @@ section specs
 
   -- Verification of Insertion Sort
 
+  /- TODO: To finish this batch of specs, I really need
+     - support for multiple named variables
+     - support for 'the' to refer to a referent (named or unnamed) introduced by a quantifier 
+
+     Ideally I could read a solution to the first straight out of Ranta, though I could probably just tweak Jacobson's approach to work with a "named NP" construct used only for the 'hole' with discourse referents, coupled with named-quantifier forms "any list l"). Plus a tag/decl typeclass for marking which identifiers can be converted to variable references (via a lexicon instance). This is basically two minor variations on a single extension, and gets us through this chapter's specs.
+  -/
+
   -- Original: Prove that insertion sort's insert function produces the same contents as merely prepending the inserted element to the front of the list
   -- Note: This is very verbose, and can be said much more succinctly
-  -- Proposal: shorter version below
+  -- Proposal: insertion of any value preserves contents
+  -- Note: value was chosen here rather than natural for unification purposes
   @[simp]
   def insert_contents_raw := ∀ x l, contents (sort.insert x l) = contents (x :: l)
+  instance insertion_func : lexicon Prop "insertion" ((@NP (List value -> List value)) // (@PP value PPType.OF)) := sort.sort_specs.insertion_func
+  instance val_noun : lexicon Prop "value" (@CN value) := { denotation := fun _ => True }
   @[simp]
-  def insert_contents_spec := pspec [| TBD |]
+  def insert_contents_spec := pspec [| insertion of any value preserves contents |]
+  theorem insert_contents_consistent : insert_contents_raw -> insert_contents_spec :=
+    by simp
+       intro H a x
+       -- Aha! Indeed, this is wrong because there's no cons here
 
   -- Original: Prove that insertion sort preserves contents
   @[simp]
@@ -140,22 +158,47 @@ section specs
   -- They also require a range of general list manipulations, which could be generally useful
   -- Arguably some of these are the sorts of "detailed internal specs" that one typically *wouldn't* try to write down explicitly in English
 
+  instance : NLVar "al" where
+  instance : NLVar "bl" where
+  section experiments
+    open Anaphora
+    instance permutation_list : lexicon Prop "permutation" ((@CN (List value)) // (@PP (List value) PPType.OF)) where
+      denotation := λ a b => sort.Permutation a b 
+    instance SynthRAppVar (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1 // c2)][R:Synth P s2 (c2 % (@Var T v))] : Synth P (s1#s2) (c1 % (@Var T v)) where
+      denotation := λ (t:T) => @Synth.denotation P s1 (c1 // c2) L ((@Synth.denotation _ s2 _ R) t)
+      stringRep := "(SynthRAppVar "++L.stringRep++" "++R.stringRep++")"
+    def _a := dbgspecwitness Prop [| al is a permutation of bl |] ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
+    def _b := dbgspecwitness Prop [|permutation of bl|] ((@CN (List value)) % (@Var (List value) "bl"))
+    def _bl := dbgspecwitness Prop [|bl|] (@NP (List value) % (@Var (List value) "bl"))
+    def _al := dbgspecwitness Prop [|al|] (@NP (List value) % (@Var (List value) "al"))
+    def _of_bl := dbgspecwitness Prop [|of bl|] ((@PP (List value) PPType.OF) % (@Var (List value) "bl"))
+  end experiments
+
   -- No explicit English
+  -- Candidate: the contents of any list al equal the contents of any list bl if al is a permutation of bl
   def perm_contents_raw := ∀ al bl, sort.Permutation al bl -> contents al = contents bl
   -- No Explicit English
   -- Note: This would be a nice demonstration of grammatical flexibiliy, dealing with nested quantifier scopes
+  -- Candidate: if any list has empty contents that list is empty
+  -- Candidate: any list is empty if <something about looking up the count of any key in contents>
   def contents_nil_inv_raw := ∀ l, (∀ x, 0 = contents l x) -> l = []
+
   -- No Explicit English
-  def contents_cons_inv := ∀ l x n,
+  def contents_cons_inv_raw := ∀ l x n,
     Nat.succ n = contents l x ->
     (∃ l1 l2,
       l = l1 ++ x :: l2
       ∧ contents (l1 ++ l2) x = n)
+  
+  -- No Explicit English
   def contents_insert_other_raw := ∀ l1 l2 x y,
     y ≠ x -> contents (l1 ++ x :: l2) y = contents (l1 ++ l2) y
-  def contents_perm := ∀ al bl, contents al = contents bl -> sort.Permutation al bl
 
-  -- Still No Explicit English
+  -- No Explicit English
+  -- Proposal, reverse the sentence structure of the perm -> content sentence
+  def contents_perm_raw := ∀ al bl, contents al = contents bl -> sort.Permutation al bl
+
+  -- No Explicit English
   def same_contents_iff_perm_raw := ∀ al bl, contents al = contents bl ↔ sort.Permutation al bl
   -- Semi-specified in English, "the two specifications are equivalent"
   -- TODO: How subtle is the grammar for "if and only if"?
