@@ -107,6 +107,7 @@ instance into_lex (P:Type u)[HeytingAlgebra P](T:Type u) : lexicon P "into" ((@P
 -- the indefinite article in a direct object position. It will require
 -- further generalization in the future.
 -- This has args in Type rather than Type u b/c it's a Prop entry
+-- We could generalize that bit directly to any cylindrical algebra
 instance a_directobject {A:Type}{B:Type} : lexicon Prop "a" 
   (((((@NP B) ∖ S) // (@NP A)) ∖ ((@NP B) ∖ S)) // (@CN A)) where
   denotation (cn:interp Prop (@CN A)) frag := fun subj => ∃ (a:A), cn a /\ frag a subj
