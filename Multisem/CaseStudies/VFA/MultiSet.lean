@@ -173,8 +173,8 @@ section specs
     instance SynthRAppVar (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1 // c2)][R:Synth P s2 (c2 % (@Var T v))] : Synth P (s1#s2) (c1 % (@Var T v)) where
       denotation := λ (t:T) => @Synth.denotation P s1 (c1 // c2) L ((@Synth.denotation _ s2 _ R) t)
       stringRep := "(SynthRAppVar "++L.stringRep++" "++R.stringRep++")"
-    instance SynthRAppVarF (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 ((c1 // c2) % (@Var T v)][R:Synth P s2 (c2)] : Synth P (s1#s2) (c1 % (@Var T v)) where
-      denotation := λ (t:T) => @Synth.denotation P s1 (c1 // c2) L t (Synth.denotation s2) 
+    instance SynthRAppVarF (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 ((c1 // c2) % (@Var T v))][R:Synth P s2 (c2)] : Synth P (s1#s2) (c1 % (@Var T v)) where
+      denotation := λ (t:T) => L.denotation _ t (Synth.denotation s2) 
       stringRep := "(SynthRAppVarF "++L.stringRep++" "++R.stringRep++")"
     instance SynthLAppVar (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1 % (@Var T v))][R:Synth P s2 (c1 ∖ c2)] : Synth P (s1#s2) (c2 % (@Var T v)) where
       denotation := λ (t:T) => R.denotation _ (L.denotation _ t)
@@ -182,9 +182,10 @@ section specs
     instance SynthLAppVarF (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1)][R:Synth P s2 ((c1 ∖ c2) % (@Var T v))] : Synth P (s1#s2) (c2 % (@Var T v)) where
       denotation := λ (t:T) => R.denotation _ t (L.denotation)
       stringRep := "(SynthLAppVarF "++L.stringRep++" "++R.stringRep++")"
-    instance VarFold (P:Type u){s}{C}{v}{T}[sem:Synth P s1 ((C % (@Var T v)) % (@Var T v))] : Synth P s1 (C % (@Var T v)) where
-      denotation := λ t => sem.denotation _ t t
-      stringRep := "(VarFold "++sem.stringRep++")"
+    -- Seems important but blows up search time
+    --instance VarFold (P:Type u){s1}{C}{v}{T}[sem:Synth P s1 ((C % (@Var T v)) % (@Var T v))] : Synth P s1 (C % (@Var T v)) where
+    --  denotation := λ t => sem.denotation _ t t
+    --  stringRep := "(VarFold "++sem.stringRep++")"
 
     -- For now we'll limit ourselves to two variables
     -- Note the convention that the argument hole becomes the outer binder
@@ -200,6 +201,18 @@ section specs
       : Synth P (s1#s2) ((C2 % (@Var v2 T2)) % (@Var v1 T1)) where
       denotation := λ t1 t2 => R.denotation _ t2 (L.denotation _ t1)
       stringRep := "(VarStackR"++L.stringRep++" "++R.stringRep++")"
+    instance VarMatchR (P:Type u){s1 s2}{C1 C2}{v}{T}
+      [L:Synth P s1 ((C1 // C2) % (@Var v T))]
+      [R:Synth P s2 (C2 % (@Var v T))]
+      : Synth P (s1#s2) ((C1 % (@Var v T))) where
+      denotation := λ t => L.denotation _ t (R.denotation _ t)
+      stringRep := "(VarMatchR"++L.stringRep++" "++R.stringRep++")"
+    instance VarMatchL (P:Type u){s1 s2}{C1 C2}{v}{T}
+      [L:Synth P s1 (C1 % (@Var v T))]
+      [R:Synth P s2 ((C1 ∖ C2) % (@Var v T))]
+      : Synth P (s1#s2) ((C2 % (@Var v T))) where
+      denotation := λ t => R.denotation _ t (L.denotation _ t)
+      stringRep := "(VarMatchR"++L.stringRep++" "++R.stringRep++")"
 
     def _bl := dbgspecwitness Prop [|bl|] (@NP (List value) % (@Var (List value) "bl"))
     def _al := dbgspecwitness Prop [|al|] (@NP (List value) % (@Var (List value) "al"))
@@ -214,10 +227,22 @@ section specs
     -- TODO: Okay, apparently adding "if" as a coordinator causes performance problems, but also it's actually wrong in a way, because we don't want to say stuff like "(even if odd) three" or "5 ((is 3) if (is 4)"
     -- TODO: The reasons for the performance issues are unclear
     -- So we need a separate 'if' lexicon entry. We'd like if to work on only the ref surface heyting algebras, not all surface HAs.
+
+    -- Can't decide if "if" should be handled via a similar lifting process to coordinators (but distinct and only for anaphra, per above), or something else. In the mean time let's just write a few special cases we'd like to be able to ideally derive, to make forward progress
+    instance A_if_B_base {H}[ha:HeytingAlgebra H] : lexicon H "if" (S ∖ (S // S)) where
+      denotation := λ concl hyp => ha.impl hyp concl
+    instance A_if_B_abs1 {H}[ha:HeytingAlgebra H]{v}{T} : lexicon H "if" ((S % (@Var v T)) ∖ ((S % (@Var v T)) // (S % (@Var v T)))) where
+      denotation := λ concl hyp x => ha.impl (hyp x) (concl x)
+    instance A_if_B_abs2 {H}[ha:HeytingAlgebra H]{v v'}{T T'} : lexicon H "if" (((S % (@Var v' T')) % (@Var v T)) ∖ (((S % (@Var v' T')) % (@Var v T)) // ((S % (@Var v' T')) % (@Var v T)))) where
+      denotation := λ concl hyp x y => ha.impl (hyp x y) (concl x y)
+
     def _checklift := dbgspecwitness Prop "if" 
       (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) // ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))))
     def _checkshift := dbgspecwitness Prop "if" ((((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))) // ((S % (@Var ( List value) "bl")) % (@Var (List value) "al")))
+    set_option synthInstance.maxHeartbeats 200000
     def _3 := dbgspecwitness Prop ("if" # [| al is a permutation of bl |]) (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ ((S % (@Var ( List value) "bl")) % (@Var (List value) "al")))
+    def _3manual : Synth Prop ("if" # [| al is a permutation of bl |]) (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))) :=
+      SynthRApp (L:= _checkshift) (R:=_a)
     
     -- not actually useful, but poking at coordination
     -- times out
