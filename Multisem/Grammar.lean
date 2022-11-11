@@ -119,13 +119,16 @@ instance lSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[Su
 instance rSlashHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (C' // C) where
   combineProps op d1 d2 := fun x => SurfaceHeytingAlgebra.combineProps n op (d1 x) (d2 x)
 
+instance refHeytingAlgebra (P:Type u)[HeytingAlgebra P]{n:Nat}(C C' : Cat)[SurfaceHeytingAlgebra P n C'] : SurfaceHeytingAlgebra P (Nat.succ n) (C' % C) where
+  combineProps op d1 d2 := fun x => SurfaceHeytingAlgebra.combineProps n op (d1 x) (d2 x)
+
 class lexicon.{q} (P : Type q) (w:String) (c:Cat.{q}) where
   denotation : interp P c 
 attribute [simp] lexicon.denotation
 
 class NLVar (s:String) where
 
-instance inhabitedLexVar.{q} {P:Type q} {T : Type q} (w:String) [NLVar w] : lexicon P w ((@NP T) % (@Var T w)) where
+instance taggedLexVar.{q} {P:Type q} {T : Type q} (w:String) [NLVar w] : lexicon P w ((@NP T) % (@Var T w)) where
   denotation := λ x => x
 
 
@@ -193,7 +196,7 @@ instance MLift (H:Type u){T U:Type u}{s}[sem:Synth H s (((@NP T) ∖ S) // (@NP 
   The rules in here make the search space *much* larger, so they are disabled
   by default.
 -/
-namespace Anaphora
+namespace Jacobson
   -- Slightly simplified (concretized) Jacobson-style extraction (e.g., for anaphora), per Jaeger (p100)
   -- Jacobson restricts the automatic raising to cases where the extraction is a NP, which is all we need now, and also prevents these from completely trashing performance with unconstrained search
   local instance (priority := low) GR {P:Type u}[HeytingAlgebra P]{X A B}{C:Type u}[base:Synth P X (A // B)]
@@ -279,7 +282,7 @@ namespace Anaphora
   Another approach would be to treat 'the' as a GQ that gets its argument externally (so, type is roughtly GQ|NP, so the semantics capture sentence-combining things), then could apply the CN predicate to whatever gets bound as a sanity check.
   -/
 
-end Anaphora
+end Jacobson
 
 
 

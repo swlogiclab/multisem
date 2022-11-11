@@ -161,17 +161,60 @@ section specs
   instance : NLVar "al" where
   instance : NLVar "bl" where
   section experiments
-    open Anaphora
+    --open Anaphora
     instance permutation_list : lexicon Prop "permutation" ((@CN (List value)) // (@PP (List value) PPType.OF)) where
       denotation := λ a b => sort.Permutation a b 
+
+    /-
+      These instances do a lot of work, but they're limited to depth one.
+      Much of the difficulty and subtlety of grammatical treatments of anaphora is ensuring that arbitrary stacking is handled, regardless of depth, ordering, or repetition.
+      The systems I've studied in detail (notably Jacobson's but seemingly also Moortgat's, and based on initial investigations Barker and Shan's) seem to handle this by allowing arbitrary lifting of "whole" fragments to assume compatibility with an arbitrary hole. But of course this blows up search pretty bad because a lot of time is wasted lifting terms that don't need it (and this is with her restriction to NP referents).
+    -/
     instance SynthRAppVar (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1 // c2)][R:Synth P s2 (c2 % (@Var T v))] : Synth P (s1#s2) (c1 % (@Var T v)) where
       denotation := λ (t:T) => @Synth.denotation P s1 (c1 // c2) L ((@Synth.denotation _ s2 _ R) t)
       stringRep := "(SynthRAppVar "++L.stringRep++" "++R.stringRep++")"
-    def _a := dbgspecwitness Prop [| al is a permutation of bl |] ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
-    def _b := dbgspecwitness Prop [|permutation of bl|] ((@CN (List value)) % (@Var (List value) "bl"))
+    instance SynthRAppVarF (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 ((c1 // c2) % (@Var T v)][R:Synth P s2 (c2)] : Synth P (s1#s2) (c1 % (@Var T v)) where
+      denotation := λ (t:T) => @Synth.denotation P s1 (c1 // c2) L t (Synth.denotation s2) 
+      stringRep := "(SynthRAppVarF "++L.stringRep++" "++R.stringRep++")"
+    instance SynthLAppVar (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1 % (@Var T v))][R:Synth P s2 (c1 ∖ c2)] : Synth P (s1#s2) (c2 % (@Var T v)) where
+      denotation := λ (t:T) => R.denotation _ (L.denotation _ t)
+      stringRep := "(SynthLAppVar "++L.stringRep++" "++R.stringRep++")"
+    instance SynthLAppVarF (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1)][R:Synth P s2 ((c1 ∖ c2) % (@Var T v))] : Synth P (s1#s2) (c2 % (@Var T v)) where
+      denotation := λ (t:T) => R.denotation _ t (L.denotation)
+      stringRep := "(SynthLAppVarF "++L.stringRep++" "++R.stringRep++")"
+    instance VarFold (P:Type u){s}{C}{v}{T}[sem:Synth P s1 ((C % (@Var T v)) % (@Var T v))] : Synth P s1 (C % (@Var T v)) where
+      denotation := λ t => sem.denotation _ t t
+      stringRep := "(VarFold "++sem.stringRep++")"
+
+    -- For now we'll limit ourselves to two variables
+    -- Note the convention that the argument hole becomes the outer binder
+    instance VarStackR (P:Type u){s1 s2}{C1 C2}{v1 v2}{T1 T2}
+      [L:Synth P s1 ((C1 // C2) % (@Var v1 T1))]
+      [R:Synth P s2 (C2 % (@Var v2 T2))]
+      : Synth P (s1#s2) ((C1 % (@Var v1 T1)) % (@Var v2 T2)) where
+      denotation := λ t2 t1 => L.denotation _ t1 (R.denotation _ t2)
+      stringRep := "(VarStackR"++L.stringRep++" "++R.stringRep++")"
+    instance VarStackL (P:Type u){s1 s2}{C1 C2}{v1 v2}{T1 T2}
+      [L:Synth P s1 (C1 % (@Var v1 T1))]
+      [R:Synth P s2 ((C1 ∖ C2) % (@Var v2 T2))]
+      : Synth P (s1#s2) ((C2 % (@Var v2 T2)) % (@Var v1 T1)) where
+      denotation := λ t1 t2 => R.denotation _ t2 (L.denotation _ t1)
+      stringRep := "(VarStackR"++L.stringRep++" "++R.stringRep++")"
+
     def _bl := dbgspecwitness Prop [|bl|] (@NP (List value) % (@Var (List value) "bl"))
     def _al := dbgspecwitness Prop [|al|] (@NP (List value) % (@Var (List value) "al"))
     def _of_bl := dbgspecwitness Prop [|of bl|] ((@PP (List value) PPType.OF) % (@Var (List value) "bl"))
+    def _b := dbgspecwitness Prop [|permutation of bl|] ((@CN (List value)) % (@Var (List value) "bl"))
+    def _c := dbgspecwitness Prop [|a permutation of bl|] (((((@NP (List value)) ∖ S) // (@ADJ (List value))) ∖ ((@NP (List value)) ∖ S)) % (@Var (List value) "bl"))
+    def _d := dbgspecwitness Prop [|is a permutation of bl|] (((@NP (List value)) ∖ S) % (@Var (List value) "bl"))
+
+    def _a := dbgspecwitness Prop [| al is a permutation of bl |] ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
+    
+    -- not actually useful, but poking at coordination
+    -- times out
+    --def _a' := dbgspecwitness Prop [| al is a permutation of bl and al is a permutation of bl|] ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
+
+    -- Now we need the binders for 
   end experiments
 
   -- No explicit English

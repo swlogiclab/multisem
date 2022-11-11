@@ -308,10 +308,6 @@ section searchtree_specs
     -- TODO: Here are some general-purpose lexicon entries to move
     instance the_def_single_subj {T:Type} : lexicon Prop "the" ((S // ((@NP T) ∖ S)) // (@CN T)) where
       denotation := λ p rest => ∃ (t:T), p t ∧ (∀ t', p t' -> t' = t) ∧ rest t
-    -- TODO: not really sure about how classic syntacticians would feel about this, which abuses the fact that adjectives and CNs have the same semantics
-    instance a_cn_as_adj {C:Cat}{H}[HeytingAlgebra H]{T:Type} 
-      : lexicon H "a" (((C // (@ADJ T)) ∖ C) // (@CN T)) where
-      denotation := λ cn other => other cn
   end general_instances_to_move
 
   

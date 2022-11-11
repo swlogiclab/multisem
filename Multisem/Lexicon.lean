@@ -31,6 +31,10 @@ instance noun_is_adj_lex {T}{P}: lexicon P "is" (((@NP T) ∖ S) // (@ADJ T)) wh
   denotation := fun a n => a n
 instance noun_is_noun_lex {T}: lexicon Prop "is" (((@NP T) ∖ S) // (@NP T)) where
   denotation := fun a n => a = n
+-- TODO: not really sure about how classic syntacticians would feel about this, which abuses the fact that adjectives and CNs have the same semantics
+instance a_cn_as_adj {C:Cat}{H}[HeytingAlgebra H]{T:Type} 
+  : lexicon H "a" (((C // (@ADJ T)) ∖ C) // (@CN T)) where
+  denotation := λ cn other => other cn
 
 instance and_coord (P:Type u)[HeytingAlgebra P] : Coordinator P "and" where
   denoteCoord a b := HeytingAlgebra.conj a b
@@ -114,7 +118,7 @@ instance a_directobject {A:Type}{B:Type} : lexicon Prop "a"
 instance any_directobject {A:Type}{B:Type} : lexicon Prop "any" 
   (((((@NP B) ∖ S) // (@NP A)) ∖ ((@NP B) ∖ S)) // (@CN A)) where
   denotation (cn:interp Prop (@CN A)) frag := fun subj => ∀ (a:A), cn a -> frag a subj
--- We can lift any adjecctive to a modifier of common nouns
+-- We can lift any adjective to a modifier of common nouns
 instance AdjModifier {H:Type u}{A : Type u}[ha:HeytingAlgebra H](s:String)[l:lexicon H s (@ADJ A)] : lexicon H s ((@CN A) // (@CN A)) where
   denotation cn := fun x => ha.conj (l.denotation s x) (cn x)
 
@@ -134,3 +138,6 @@ instance list_lex {P:Type u}[HeytingAlgebra P]{T:Type u}: lexicon P "list" ((@CN
 instance any_ppobject {A:Type}{C:Cat} : lexicon Prop "any" 
   (((C // (@NP A)) ∖ (S // (C ∖ S))) // (@CN A)) where
   denotation (cn:interp Prop (@CN A)) frag tail := ∀ (a:A), cn a -> tail (frag a)
+
+namespace NamedAnaphora
+end NamedAnaphora
