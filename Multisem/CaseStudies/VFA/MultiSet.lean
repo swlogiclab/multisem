@@ -209,6 +209,15 @@ section specs
     def _d := dbgspecwitness Prop [|is a permutation of bl|] (((@NP (List value)) ∖ S) % (@Var (List value) "bl"))
 
     def _a := dbgspecwitness Prop [| al is a permutation of bl |] ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
+
+    -- 'if' should lift as a coordinator for ((S % (@Var ( List value) "bl")) % (@Var (List value) "al")), then shift to take right arg first, resulting in something that looks left
+    -- TODO: Okay, apparently adding "if" as a coordinator causes performance problems, but also it's actually wrong in a way, because we don't want to say stuff like "(even if odd) three" or "5 ((is 3) if (is 4)"
+    -- TODO: The reasons for the performance issues are unclear
+    -- So we need a separate 'if' lexicon entry. We'd like if to work on only the ref surface heyting algebras, not all surface HAs.
+    def _checklift := dbgspecwitness Prop "if" 
+      (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) // ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))))
+    def _checkshift := dbgspecwitness Prop "if" ((((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))) // ((S % (@Var ( List value) "bl")) % (@Var (List value) "al")))
+    def _3 := dbgspecwitness Prop ("if" # [| al is a permutation of bl |]) (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ ((S % (@Var ( List value) "bl")) % (@Var (List value) "al")))
     
     -- not actually useful, but poking at coordination
     -- times out
