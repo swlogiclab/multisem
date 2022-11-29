@@ -49,6 +49,8 @@ section specs
       denotation := λ f => ∀ a b, f a b = f b a
     instance preserves_lex {X Y : Type}: lexicon Prop "preserves" (((@NP (X -> X)) ∖ S) // (@NP (X -> Y))) where
       denotation prop f := ∀ x, prop x = prop (f x)
+    instance the_X_of_Y {X Y : Type}: lexicon Prop "the" (((@NP Y) // (@PP X PPType.OF)) // (@NP (X -> Y))) where
+      denotation := fun f x => f x
   end relocate_later
 
   section locallex
@@ -253,12 +255,41 @@ section specs
 
   -- No explicit English
   -- Candidate: the contents of any list al equal the contents of any list bl if al is a permutation of bl
+  /- TODO: Currently we have enough to do:
+    "the contents of al equals the contents of bl if al is a permutation of bl"
+    but we need to introduce the quantifiers.
+    Doing this via "for any list al and any list bl" requires either special-casing 'for' in somem weird ways or preferably over-loading 'and' to conjoin quantifiers, ideally so the result looks for a sentence missing those two variables (in the right nesting order...)
+
+    The alternative is to arrange for 'any list bl' to turn into a GQ in the appropriate way in 'the contents of any list al equal the contents of any list bl if ...'. This would really be the ideal approach, but the quantifier types seem quite complex... unless there's something crystal clear I missed in Steedman's Taking Scope. Long-term the ideal would be to implement Shan and Barker's continuation types, but this is too much of a detour for now.
+  -/
   def perm_contents_raw := ∀ al bl, sort.Permutation al bl -> contents al = contents bl
+
   -- No Explicit English
   -- Note: This would be a nice demonstration of grammatical flexibiliy, dealing with nested quantifier scopes
   -- Candidate: if any list has empty contents that list is empty
   -- Candidate: any list is empty if <something about looking up the count of any key in contents>
+  instance empty_multiset : lexicon Prop "empty" (@ADJ multiset) where
+    denotation := λ ms => ∀ x, 0 = ms x
+  instance empty_list {T:Type}: lexicon Prop "empty" (@ADJ (List T)) where
+    denotation := λ l => l = []
+  -- Candidate: any list is empty if its contents are empty
+  /--
+    This instance feels slightly over-specialized, like it should be derivable from a more general property.
+    It seems to be in the same spirit as e.g. `Multisem.Grammar.Jacobson.ZRR`, but the version of Jacobson's
+    work I took that from (Gerhard 2005) didn't address anaphora across coordinators.
+  -/
+  instance if_lift_ref {A:Type}: lexicon Prop "if" ((((@NP A) ∖ S) ∖ ((@NP A) ∖ S)) // (S % (@NP A))) where
+    denotation := λ r l x => r x -> l x
+  instance when_lwhent_ref {A:Type}: lexicon Prop "when" ((((@NP A) ∖ S) ∖ ((@NP A) ∖ S)) // (S % (@NP A))) where
+    denotation := λ r l x => r x -> l x
+  instance its_ref {A B:Type}: lexicon Prop "its" (((@NP B) % (@NP A)) / (@NP (A -> B))) where
+    denotation := λ p a => p a
+  instance any_head {A:Type}: lexicon Prop "any" ((S // ((@NP A) ∖ S)) // (@CN A)) where
+    denotation := λ p rest => ∀ (x:A), p x -> rest x
+
   def contents_nil_inv_raw := ∀ l, (∀ x, 0 = contents l x) -> l = []
+  -- Currently working around the fact that "if" isn't a valid Lean identifier by using "when"
+  def contents_nil_inv_spec := pspec [| any list is empty when its contents are empty |]
 
   -- No Explicit English
   def contents_cons_inv_raw := ∀ l x n,
@@ -282,9 +313,6 @@ section specs
   -- TODO: Makes sense to unfold *both* definitions
   #print sort.is_a_sorting_algorithm
   def sort_specifications_equivalent_raw := ∀ f, sort.is_a_sorting_algorithm f ↔ is_a_sorting_algorithm' f
-
-
-
 
 
     
