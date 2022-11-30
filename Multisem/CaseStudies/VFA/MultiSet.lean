@@ -286,10 +286,51 @@ section specs
     denotation := λ p a => p a
   instance any_head {A:Type}: lexicon Prop "any" ((S // ((@NP A) ∖ S)) // (@CN A)) where
     denotation := λ p rest => ∀ (x:A), p x -> rest x
+  instance are_adj_lex {A:Type}: lexicon Prop "are" (((@NP A) ∖ S) // (@ADJ A)) where
+    denotation := λ p x => p x
 
+  #check contents
   def contents_nil_inv_raw := ∀ l, (∀ x, 0 = contents l x) -> l = []
+  open Jacobson
+  -- TODO: Currently fails even with higher heartbeat count, need to verify it actually parses the way I intend
   -- Currently working around the fact that "if" isn't a valid Lean identifier by using "when"
   def contents_nil_inv_spec := pspec [| any list is empty when its contents are empty |]
+  section _dbg
+    def its_contents_are_empty := dbgspecwitness Prop [|its contents are empty |] (S % (@NP (List value)))
+    /-
+      Why doesn't this resolve? It's literally just a rightward application with two lexicon entries from *this* file!
+    -/
+    def its_contents_auto := dbgspecwitness Prop [|its contents|] ((@NP multiset) % (@NP (List value)))
+    def its_contents_are_empty' : Synth Prop [|its contents are empty |] (S % (@NP (List value))) :=
+      --let are_empty := dbgspecwitness Prop [|are empty|] ((@NP multiset) ∖ S)
+      /- Okay, this is weird: This `its_contents_manual` isn't directly used, but having it in scope seems to get it picked up when inferring the full spec.
+         But there's no reason this should matter: it's just a right application! So one of several things must be happening:
+         - AppGL doesn't fire unless this unit is already in scope
+         - This particular associativity isn't explored
+           + Seems pretty unlikely since it just requires one use of `Reassoc'`
+         - For some reason it simply doesn't try this right application?
+           + As bizarre as this is, it's consistent with the above issue where trying to synthesize the same type automatically fails even though it's trivial. There's a remote possibility there's an issue unifying some implicit argument somewhere, but the only issue I can predict there is the value vs Nat issue, which I've probed and discarded as a cause.
+           + I think we can also rule out inability to choose an instantiation, since "contents" only has one lexical entry here
+      -/
+      let its_contents_manual := SynthRApp (L:= SynthLex (l := its_ref)) (R:= SynthLex (l:= contents_lex))
+      --let its_contents := dbgspecwitness Prop [|its contents|] ((@NP multiset) % (@NP (List value)))
+      --let full := AppGL (arg := its_contents) (f := are_empty)
+      --Reassoc' (pre:=full)
+      dbgspecwitness Prop [|its contents are empty|] (S % (@NP (List value)))
+  
+    def its_contents_manual_external := SynthRApp (L:= SynthLex (l := its_ref)) (R:= SynthLex (l:= contents_lex))
+    #check its_contents_manual_external
+
+    def when_ := dbgspecwitness Prop [|when its contents are empty|] (((@NP (List value)) ∖ S) ∖ ((@NP (List value)) ∖ S))
+    def when_manual := SynthRApp (L:=SynthLex (l:=when_lwhent_ref)) (R:= its_contents_are_empty') --dbgspecwitness Prop [|when its contents are empty|] (((@NP (List value)) ∖ S) ∖ ((@NP (List value)) ∖ S))
+    def after_all := Reassoc' (pre:= SynthLApp (L := dbgspecwitness Prop [|is empty|] ((@NP (List value)) ∖ S)) (R := when_manual))
+    -- TODO: plural values
+    def list_of_nats := dbgspecwitness Prop [|list of value|] (@CN (List value))
+    def finished_manual_missing_assoc :=
+      SynthRApp (L:= SynthRApp (L:=SynthLex (l:=any_head)) (R:=list_of_nats)) (R:=after_all)
+    #eval finished_manual_missing_assoc
+
+  end _dbg
 
   -- No Explicit English
   def contents_cons_inv_raw := ∀ l x n,
