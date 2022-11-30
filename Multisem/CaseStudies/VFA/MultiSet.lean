@@ -289,6 +289,11 @@ section specs
   instance are_adj_lex {A:Type}: lexicon Prop "are" (((@NP A) ∖ S) // (@ADJ A)) where
     denotation := λ p x => p x
 
+  /-
+    Why doesn't this resolve? It's literally just a rightward application with two lexicon entries from *this* file!
+  -/
+  def its_contents_auto := dbgspecwitness Prop [|its contents|] ((@NP multiset) % (@NP (List value)))
+
   #check contents
   def contents_nil_inv_raw := ∀ l, (∀ x, 0 = contents l x) -> l = []
   open Jacobson
@@ -297,20 +302,19 @@ section specs
   def contents_nil_inv_spec := pspec [| any list is empty when its contents are empty |]
   section _dbg
     def its_contents_are_empty := dbgspecwitness Prop [|its contents are empty |] (S % (@NP (List value)))
-    /-
-      Why doesn't this resolve? It's literally just a rightward application with two lexicon entries from *this* file!
-    -/
-    def its_contents_auto := dbgspecwitness Prop [|its contents|] ((@NP multiset) % (@NP (List value)))
     def its_contents_are_empty' : Synth Prop [|its contents are empty |] (S % (@NP (List value))) :=
       --let are_empty := dbgspecwitness Prop [|are empty|] ((@NP multiset) ∖ S)
       /- Okay, this is weird: This `its_contents_manual` isn't directly used, but having it in scope seems to get it picked up when inferring the full spec.
          But there's no reason this should matter: it's just a right application! So one of several things must be happening:
          - AppGL doesn't fire unless this unit is already in scope
+           + Seems pretty unlikely
          - This particular associativity isn't explored
-           + Seems pretty unlikely since it just requires one use of `Reassoc'`
+           + Seems pretty unlikely since it just requires one use of `Reassoc'`, and once this is in scope that's found w/o issue
          - For some reason it simply doesn't try this right application?
            + As bizarre as this is, it's consistent with the above issue where trying to synthesize the same type automatically fails even though it's trivial. There's a remote possibility there's an issue unifying some implicit argument somewhere, but the only issue I can predict there is the value vs Nat issue, which I've probed and discarded as a cause.
            + I think we can also rule out inability to choose an instantiation, since "contents" only has one lexical entry here
+         - This trips over some subtlety of Lean's unification algorithm
+         - This is a bug in TC search
       -/
       let its_contents_manual := SynthRApp (L:= SynthLex (l := its_ref)) (R:= SynthLex (l:= contents_lex))
       --let its_contents := dbgspecwitness Prop [|its contents|] ((@NP multiset) % (@NP (List value)))
@@ -329,6 +333,11 @@ section specs
     def finished_manual_missing_assoc :=
       SynthRApp (L:= SynthRApp (L:=SynthLex (l:=any_head)) (R:=list_of_nats)) (R:=after_all)
     #eval finished_manual_missing_assoc
+
+    def _consistent : contents_nil_inv_raw -> finished_manual_missing_assoc.denotation :=
+      by simp [contents_nil_inv_raw, finished_manual_missing_assoc,after_all,when_manual,its_contents_are_empty']
+         intros H x _
+         apply H
 
   end _dbg
 
