@@ -120,13 +120,17 @@ instance any_directobject {A:Type}{B:Type} : lexicon Prop "any"
   denotation (cn:interp Prop (@CN A)) frag := fun subj => ∀ (a:A), cn a -> frag a subj
 -- We can lift any adjective to a modifier of common nouns
 instance AdjModifier {H:Type u}{A : Type u}[ha:HeytingAlgebra H](s:String)[l:lexicon H s (@ADJ A)] : lexicon H s ((@CN A) // (@CN A)) where
-  denotation cn := fun x => ha.conj (l.denotation s x) (cn x)
+  denotation cn := fun x => ha.conj (l.denotation x) (cn x)
 
 -- For now we're ignoring pluralization
 instance naturals_lex : lexicon Prop "naturals" (@CN Nat) where
   denotation _ := True
 instance natural_lex : lexicon Prop "natural" (@CN Nat) where
   denotation _ := True
+instance equals_eq_lex {T}: lexicon Prop "equals" (((@NP T) ∖ S) // (@NP T)) where
+  denotation := fun r l => r = l 
+instance equal_eq_lex {T}: lexicon Prop "equal" (((@NP T) ∖ S) // (@NP T)) where
+  denotation := fun r l => r = l 
 
 -- This is of course highly overspecialized, but the right general-purpose definition of 'algorithm' in a dependent type theory is itself a reasonably deep philosophical question
 instance algorithm_basic {T:Type}: lexicon Prop "algorithm" (@CN (List T -> List T)) where
@@ -138,6 +142,3 @@ instance list_lex {P:Type u}[HeytingAlgebra P]{T:Type u}: lexicon P "list" ((@CN
 instance any_ppobject {A:Type}{C:Cat} : lexicon Prop "any" 
   (((C // (@NP A)) ∖ (S // (C ∖ S))) // (@CN A)) where
   denotation (cn:interp Prop (@CN A)) frag tail := ∀ (a:A), cn a -> tail (frag a)
-
-namespace NamedAnaphora
-end NamedAnaphora

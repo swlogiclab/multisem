@@ -26,8 +26,6 @@ def one_is_odd :=  pspec ("one"#("is"#"odd"))
 --  instance and_adj_lex {T}: @lexicon Bs BsBase  "and" (rslash (lslash (prim (@ADJ T)) (prim (@ADJ T))) (prim (@ADJ T))) := { denotation := fun a n x => a x /\ n x }
 --
 --
-instance equals_eq_lex {T}: lexicon Prop "equals" (((@NP T) ∖ S) // (@NP T)) where
-  denotation := fun r l => r = l 
 
 def one_equals_one := (pspec ("one" # ("equals" # "one")))
 --def one_is_odd := (pspec ("one" # ("is" # "odd")))

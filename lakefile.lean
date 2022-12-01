@@ -16,5 +16,5 @@ open Lake DSL
 
 package multisem
 
-@[defaultTarget]
+@[default_target]
 lean_lib Multisem

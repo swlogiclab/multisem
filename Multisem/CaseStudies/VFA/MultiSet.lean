@@ -2,6 +2,10 @@ import Multisem.Text.Macros
 import Multisem.Lexicon
 import Multisem.CaseStudies.VFA.Sort
 
+-- Most of this file works fine with 200K for each, but the longer ones fail with 400K
+set_option synthInstance.maxHeartbeats 1600000
+set_option maxHeartbeats 1600000
+
 section multiset
 
   /- Note: VFA does a lot of this definition of short-hands for types,
@@ -51,6 +55,34 @@ section specs
       denotation prop f := ∀ x, prop x = prop (f x)
     instance the_X_of_Y {X Y : Type}: lexicon Prop "the" (((@NP Y) // (@PP X PPType.OF)) // (@NP (X -> Y))) where
       denotation := fun f x => f x
+    instance empty_list {T:Type}: lexicon Prop "empty" (@ADJ (List T)) where
+      denotation := λ l => l = []
+    /--
+      This instance feels slightly over-specialized, like it should be derivable from a more general property.
+      It seems to be in the same spirit as e.g. `Multisem.Grammar.Jacobson.ZRR`, but the version of Jacobson's
+      work I took that from (Gerhard 2005) didn't address anaphora across coordinators.
+    -/
+    instance if_lift_ref {A:Type}: lexicon Prop "if" ((((@NP A) ∖ S) ∖ ((@NP A) ∖ S)) // (S % (@NP A))) where
+      denotation := λ r l x => r x -> l x
+    instance when_lwhent_ref {A:Type}: lexicon Prop "when" ((((@NP A) ∖ S) ∖ ((@NP A) ∖ S)) // (S % (@NP A))) where
+      denotation := λ r l x => r x -> l x
+    instance its_ref {A B:Type}: lexicon Prop "its" (((@NP B) % (@NP A)) / (@NP (A -> B))) where
+      denotation := λ p a => p a
+    instance any_head {A:Type}: lexicon Prop "any" ((S // ((@NP A) ∖ S)) // (@CN A)) where
+      denotation := λ p rest => ∀ (x:A), p x -> rest x
+    instance are_adj_lex {A:Type}: lexicon Prop "are" (((@NP A) ∖ S) // (@ADJ A)) where
+      denotation := λ p x => p x
+
+    instance iff_prop : lexicon Prop "iff" ((S ∖ S) // S) where
+      denotation x y := x <-> y
+
+    -- These should be obtained by lifting other entries, but for now we'll define them manually
+    -- This is slightly odd because it's conceivable the 'v' portion might be more than a variable
+    instance every_named {A}{w}: lexicon Prop "every" (((S // (S % (@Var A w))) // ((@NP A) % (@Var A w))) // (@CN A)) where
+      denotation cn v rest := ∀ (a:A), cn a -> rest a
+    instance and_named_coord {A B}{w v} : lexicon Prop "and"
+((S // (S % (@Var A w))) ∖ S) // (S // (S % (@Var B v))) where
+      denotation rhs lhs := 
   end relocate_later
 
   section locallex
@@ -63,7 +95,10 @@ section specs
       denotation := sort.sort
     instance sorts_lex2 : lexicon Prop "sorts" ((@NP (List value -> List value)) ∖ S) where
       denotation f := ∀ l, sort.sorted (f l)
-
+    instance empty_multiset : lexicon Prop "empty" (@ADJ multiset) where
+      denotation := λ ms => ∀ x, 0 = ms x
+    instance permutation_list : lexicon Prop "permutation" ((@CN (List value)) // (@PP (List value) PPType.OF)) where
+      denotation := λ a b => sort.Permutation a b 
   end locallex
 
   -- General Multiset Specs
@@ -164,8 +199,6 @@ section specs
   instance : NLVar "bl" where
   section experiments
     --open Anaphora
-    instance permutation_list : lexicon Prop "permutation" ((@CN (List value)) // (@PP (List value) PPType.OF)) where
-      denotation := λ a b => sort.Permutation a b 
 
     /-
       These instances do a lot of work, but they're limited to depth one.
@@ -176,13 +209,13 @@ section specs
       denotation := λ (t:T) => @Synth.denotation P s1 (c1 // c2) L ((@Synth.denotation _ s2 _ R) t)
       stringRep := "(SynthRAppVar "++L.stringRep++" "++R.stringRep++")"
     instance SynthRAppVarF (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 ((c1 // c2) % (@Var T v))][R:Synth P s2 (c2)] : Synth P (s1#s2) (c1 % (@Var T v)) where
-      denotation := λ (t:T) => L.denotation _ t (Synth.denotation s2) 
+      denotation := λ (t:T) => L.denotation t (Synth.denotation s2) 
       stringRep := "(SynthRAppVarF "++L.stringRep++" "++R.stringRep++")"
     instance SynthLAppVar (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1 % (@Var T v))][R:Synth P s2 (c1 ∖ c2)] : Synth P (s1#s2) (c2 % (@Var T v)) where
-      denotation := λ (t:T) => R.denotation _ (L.denotation _ t)
+      denotation := λ (t:T) => R.denotation (L.denotation t)
       stringRep := "(SynthLAppVar "++L.stringRep++" "++R.stringRep++")"
     instance SynthLAppVarF (P:Type u){s1 s2 c1 c2}{v}{T}[L:Synth P s1 (c1)][R:Synth P s2 ((c1 ∖ c2) % (@Var T v))] : Synth P (s1#s2) (c2 % (@Var T v)) where
-      denotation := λ (t:T) => R.denotation _ t (L.denotation)
+      denotation := λ (t:T) => R.denotation t (L.denotation)
       stringRep := "(SynthLAppVarF "++L.stringRep++" "++R.stringRep++")"
     -- Seems important but blows up search time
     --instance VarFold (P:Type u){s1}{C}{v}{T}[sem:Synth P s1 ((C % (@Var T v)) % (@Var T v))] : Synth P s1 (C % (@Var T v)) where
@@ -195,25 +228,25 @@ section specs
       [L:Synth P s1 ((C1 // C2) % (@Var v1 T1))]
       [R:Synth P s2 (C2 % (@Var v2 T2))]
       : Synth P (s1#s2) ((C1 % (@Var v1 T1)) % (@Var v2 T2)) where
-      denotation := λ t2 t1 => L.denotation _ t1 (R.denotation _ t2)
+      denotation := λ t2 t1 => L.denotation t1 (R.denotation t2)
       stringRep := "(VarStackR"++L.stringRep++" "++R.stringRep++")"
     instance VarStackL (P:Type u){s1 s2}{C1 C2}{v1 v2}{T1 T2}
       [L:Synth P s1 (C1 % (@Var v1 T1))]
       [R:Synth P s2 ((C1 ∖ C2) % (@Var v2 T2))]
       : Synth P (s1#s2) ((C2 % (@Var v2 T2)) % (@Var v1 T1)) where
-      denotation := λ t1 t2 => R.denotation _ t2 (L.denotation _ t1)
+      denotation := λ t1 t2 => R.denotation t2 (L.denotation t1)
       stringRep := "(VarStackR"++L.stringRep++" "++R.stringRep++")"
     instance VarMatchR (P:Type u){s1 s2}{C1 C2}{v}{T}
       [L:Synth P s1 ((C1 // C2) % (@Var v T))]
       [R:Synth P s2 (C2 % (@Var v T))]
       : Synth P (s1#s2) ((C1 % (@Var v T))) where
-      denotation := λ t => L.denotation _ t (R.denotation _ t)
+      denotation := λ t => L.denotation t (R.denotation t)
       stringRep := "(VarMatchR"++L.stringRep++" "++R.stringRep++")"
     instance VarMatchL (P:Type u){s1 s2}{C1 C2}{v}{T}
       [L:Synth P s1 (C1 % (@Var v T))]
       [R:Synth P s2 ((C1 ∖ C2) % (@Var v T))]
       : Synth P (s1#s2) ((C2 % (@Var v T))) where
-      denotation := λ t => R.denotation _ t (L.denotation _ t)
+      denotation := λ t => R.denotation t (L.denotation t)
       stringRep := "(VarMatchR"++L.stringRep++" "++R.stringRep++")"
 
     def _bl := dbgspecwitness Prop [|bl|] (@NP (List value) % (@Var (List value) "bl"))
@@ -237,14 +270,28 @@ section specs
       denotation := λ concl hyp x => ha.impl (hyp x) (concl x)
     instance A_if_B_abs2 {H}[ha:HeytingAlgebra H]{v v'}{T T'} : lexicon H "if" (((S % (@Var v' T')) % (@Var v T)) ∖ (((S % (@Var v' T')) % (@Var v T)) // ((S % (@Var v' T')) % (@Var v T)))) where
       denotation := λ concl hyp x y => ha.impl (hyp x y) (concl x y)
+    instance A_when_B_abs2 {H}[ha:HeytingAlgebra H]{v v'}{T T'} : lexicon H "when" (((S % (@Var v' T')) % (@Var v T)) ∖ (((S % (@Var v' T')) % (@Var v T)) // ((S % (@Var v' T')) % (@Var v T)))) where
+      denotation := λ concl hyp x y => ha.impl (hyp x y) (concl x y)
 
     def _checklift := dbgspecwitness Prop "if" 
       (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) // ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))))
     def _checkshift := dbgspecwitness Prop "if" ((((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))) // ((S % (@Var ( List value) "bl")) % (@Var (List value) "al")))
-    set_option synthInstance.maxHeartbeats 200000
     def _3 := dbgspecwitness Prop ("if" # [| al is a permutation of bl |]) (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ ((S % (@Var ( List value) "bl")) % (@Var (List value) "al")))
     def _3manual : Synth Prop ("if" # [| al is a permutation of bl |]) (((S % (@Var ( List value) "bl")) % (@Var (List value) "al")) ∖ ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))) :=
       SynthRApp (L:= _checkshift) (R:=_a)
+    def _4a := dbgspecwitness Prop ([| the contents of al |]) ((@NP multiset) % (@Var (List value) "al"))
+    def _4b := dbgspecwitness Prop ([| the contents of bl |]) ((@NP multiset) % (@Var (List value) "bl"))
+    -- Okay, this doesn't work because 'equals' is in Misc instead of Lexicon
+    def _4b' := dbgspecwitness Prop ([| equals the contents of bl |]) (((@NP multiset) ∖ S) % (@Var (List value) "bl"))
+    def _4 := dbgspecwitness Prop ([| the contents of al equals the contents of bl |]) ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
+    def _5_manual0 := SynthRApp (L:=SynthLApp (L:=_4) (R:=SynthLex (l:=A_when_B_abs2))) (R:=_a)
+    def _5_manual := Reassoc' (pre:=_5_manual0)
+    def _5_manual' := Reassoc' (pre:=Reassoc' (pre:=_5_manual))
+    #check _5_manual'
+--instance (priority := low) Reassoc (P:Type u){s1 s2 s3 c}[pre:Synth P (s1 # (s2 # s3)) c] : Synth P ((s1 # s2) # s3) c where
+--  denotation := pre.denotation
+--  stringRep := "(Reassoc "++pre.stringRep++")"
+    def _5 := dbgspecwitness Prop ([| the contents of al equals the contents of bl when al is a permutation of bl |]) ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
     
     -- not actually useful, but poking at coordination
     -- times out
@@ -263,31 +310,14 @@ section specs
     The alternative is to arrange for 'any list bl' to turn into a GQ in the appropriate way in 'the contents of any list al equal the contents of any list bl if ...'. This would really be the ideal approach, but the quantifier types seem quite complex... unless there's something crystal clear I missed in Steedman's Taking Scope. Long-term the ideal would be to implement Shan and Barker's continuation types, but this is too much of a detour for now.
   -/
   def perm_contents_raw := ∀ al bl, sort.Permutation al bl -> contents al = contents bl
+  def perm_contents_tail:=
+    dbgspecwitness Prop [| al is a permutation of bl|]
 
   -- No Explicit English
   -- Note: This would be a nice demonstration of grammatical flexibiliy, dealing with nested quantifier scopes
   -- Candidate: if any list has empty contents that list is empty
   -- Candidate: any list is empty if <something about looking up the count of any key in contents>
-  instance empty_multiset : lexicon Prop "empty" (@ADJ multiset) where
-    denotation := λ ms => ∀ x, 0 = ms x
-  instance empty_list {T:Type}: lexicon Prop "empty" (@ADJ (List T)) where
-    denotation := λ l => l = []
   -- Candidate: any list is empty if its contents are empty
-  /--
-    This instance feels slightly over-specialized, like it should be derivable from a more general property.
-    It seems to be in the same spirit as e.g. `Multisem.Grammar.Jacobson.ZRR`, but the version of Jacobson's
-    work I took that from (Gerhard 2005) didn't address anaphora across coordinators.
-  -/
-  instance if_lift_ref {A:Type}: lexicon Prop "if" ((((@NP A) ∖ S) ∖ ((@NP A) ∖ S)) // (S % (@NP A))) where
-    denotation := λ r l x => r x -> l x
-  instance when_lwhent_ref {A:Type}: lexicon Prop "when" ((((@NP A) ∖ S) ∖ ((@NP A) ∖ S)) // (S % (@NP A))) where
-    denotation := λ r l x => r x -> l x
-  instance its_ref {A B:Type}: lexicon Prop "its" (((@NP B) % (@NP A)) / (@NP (A -> B))) where
-    denotation := λ p a => p a
-  instance any_head {A:Type}: lexicon Prop "any" ((S // ((@NP A) ∖ S)) // (@CN A)) where
-    denotation := λ p rest => ∀ (x:A), p x -> rest x
-  instance are_adj_lex {A:Type}: lexicon Prop "are" (((@NP A) ∖ S) // (@ADJ A)) where
-    denotation := λ p x => p x
 
   /-
     Why doesn't this resolve? It's literally just a rightward application with two lexicon entries from *this* file!
@@ -299,7 +329,11 @@ section specs
   open Jacobson
   -- TODO: Currently fails even with higher heartbeat count, need to verify it actually parses the way I intend
   -- Currently working around the fact that "if" isn't a valid Lean identifier by using "when"
-  def contents_nil_inv_spec := pspec [| any list is empty when its contents are empty |]
+    /-- This instance shouldn't be necessary for ANYTHING. It should be *trivially* derivable. but for whatever reason, this doesn't get derived! -/
+    instance its_contents_manual_external : Synth Prop [|its contents|] ((@NP multiset) % (@NP (List value))) := SynthRApp (L:= SynthLex (l := its_ref)) (R:= SynthLex (l:= contents_lex))
+    #check its_contents_manual_external
+  -- TODO: plural values
+  def contents_nil_inv_spec := pspec [| any list of value is empty when its contents are empty |]
   section _dbg
     def its_contents_are_empty := dbgspecwitness Prop [|its contents are empty |] (S % (@NP (List value)))
     def its_contents_are_empty' : Synth Prop [|its contents are empty |] (S % (@NP (List value))) :=
@@ -322,9 +356,6 @@ section specs
       --Reassoc' (pre:=full)
       dbgspecwitness Prop [|its contents are empty|] (S % (@NP (List value)))
   
-    def its_contents_manual_external := SynthRApp (L:= SynthLex (l := its_ref)) (R:= SynthLex (l:= contents_lex))
-    #check its_contents_manual_external
-
     def when_ := dbgspecwitness Prop [|when its contents are empty|] (((@NP (List value)) ∖ S) ∖ ((@NP (List value)) ∖ S))
     def when_manual := SynthRApp (L:=SynthLex (l:=when_lwhent_ref)) (R:= its_contents_are_empty') --dbgspecwitness Prop [|when its contents are empty|] (((@NP (List value)) ∖ S) ∖ ((@NP (List value)) ∖ S))
     def after_all := Reassoc' (pre:= SynthLApp (L := dbgspecwitness Prop [|is empty|] ((@NP (List value)) ∖ S)) (R := when_manual))
@@ -333,6 +364,9 @@ section specs
     def finished_manual_missing_assoc :=
       SynthRApp (L:= SynthRApp (L:=SynthLex (l:=any_head)) (R:=list_of_nats)) (R:=after_all)
     #eval finished_manual_missing_assoc
+    #check (Reassoc' (pre:=finished_manual_missing_assoc))
+    -- depends on the hack for 'its contents'...
+    def after_all_inferred := dbgspecwitness Prop [|is empty when its contents are empty|] ((@NP (List value) ∖ S))
 
     def _consistent : contents_nil_inv_raw -> finished_manual_missing_assoc.denotation :=
       by simp [contents_nil_inv_raw, finished_manual_missing_assoc,after_all,when_manual,its_contents_are_empty']

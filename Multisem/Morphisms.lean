@@ -12,7 +12,7 @@ instance SynthMorphBase (P:Type u)[HeytingAlgebra P](t:ContextTree String)(psem:
   stringRep := "(morphbase "++psem.stringRep++")"
 -- Marginally more interesting; weird b/c I had to constrain the HAs to be in the same universe
 instance SynthMorphADJ (T:Type u)(P:Type u)[HeytingAlgebra P](t:ContextTree String)(psem:Synth P t (@ADJ T))(Q:Type u)[HeytingAlgebra Q][ham:HeytingAlgebraMorphism P Q] : Synth Q t (@ADJ T) where
-  denotation := λ x => ham.morph (psem.denotation _ x)
+  denotation := λ x => ham.morph (psem.denotation x)
   stringRep := "(morphadj "++psem.stringRep++")"
 --
 
