@@ -55,9 +55,21 @@ instance CatMod.{q} : Mod (Cat.{q}) where
   mod := Ref
 
 -- This deriving breaks if any of the category instances are explicit arguments, because in general it cannot print types (or function expressions)
-deriving instance Repr for Cat
+--deriving instance Repr for Cat
+def catrepr (c:Cat) : Lean.Format :=
+    match c with
+    | S => "S" | NP => "NP" | ADJ => "ADJ" | CN => "CN" 
+    | PP pp => "PP["++(Repr.reprPrec pp 0)++"]"
+    | Ref l r => "("++(catrepr l)++" % "++(catrepr r)++")"
+    | rslash l r => "("++(catrepr l)++" / "++(catrepr r)++")"
+    | lslash l r => "("++(catrepr l)++" \\ "++(catrepr r)++")"
+    | Var v => "$"++v
+instance catRepr : Repr Cat where
+  reprPrec c _n := catrepr c
+
+
 #eval reprPrec (rslash (lslash S S) S) 234
-#eval (rslash (lslash S S) S)
+#eval (rslash (lslash (@NP Nat) S) (@ADJ Nat))
 
 --axiom polyunit.{α} : Type α
 --axiom pu.{α} : polyunit.{α}
