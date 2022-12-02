@@ -80,9 +80,8 @@ section specs
     -- This is slightly odd because it's conceivable the 'v' portion might be more than a variable
     instance every_named {A}{w}: lexicon Prop "every" (((S // (S % (@Var A w))) // ((@NP A) % (@Var A w))) // (@CN A)) where
       denotation cn v rest := ∀ (a:A), cn a -> rest a
-    instance and_named_coord {A B}{w v} : lexicon Prop "and"
-((S // (S % (@Var A w))) ∖ S) // (S // (S % (@Var B v))) where
-      denotation rhs lhs := 
+    --instance and_named_coord {A B}{w v} : lexicon Prop "and" ((S // (S % (@Var A w))) ∖ S) // (S // (S % (@Var B v))) where
+    --  denotation rhs lhs := 
   end relocate_later
 
   section locallex
@@ -134,11 +133,11 @@ section specs
   @[simp]
   def union_swap_raw := ∀ (a b c : multiset), union a (union b c) = union b (union a c)
   @[simp]
-  def union_swap_spec := pspec [|TBD|]
-  theorem union_swap_consistent : union_swap_raw -> union_swap_spec :=
-    by simp
-       intro H
-       sorry
+  def union_swap_spec := False --pspec [|TBD|]
+  --theorem union_swap_consistent : union_swap_raw -> union_swap_spec :=
+  --  by simp
+  --     intro H
+  --     sorry
 
   -- Verification of Insertion Sort
 
@@ -157,12 +156,13 @@ section specs
   def insert_contents_raw := ∀ x l, contents (sort.insert x l) = contents (x :: l)
   instance insertion_func : lexicon Prop "insertion" ((@NP (List value -> List value)) // (@PP value PPType.OF)) := sort.sort_specs.insertion_func
   instance val_noun : lexicon Prop "value" (@CN value) := { denotation := fun _ => True }
+  -- TODO: doesn't deal with cons
   @[simp]
   def insert_contents_spec := pspec [| insertion of any value preserves contents |]
-  theorem insert_contents_consistent : insert_contents_raw -> insert_contents_spec :=
-    by simp
-       intro H a x
-       -- Aha! Indeed, this is wrong because there's no cons here
+  --theorem insert_contents_consistent : insert_contents_raw -> insert_contents_spec :=
+  --  by simp
+  --     intro H a x
+  --     -- Aha! Indeed, this is wrong because there's no cons here
 
   -- Original: Prove that insertion sort preserves contents
   @[simp]
@@ -286,12 +286,13 @@ section specs
     def _4 := dbgspecwitness Prop ([| the contents of al equals the contents of bl |]) ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
     def _5_manual0 := SynthRApp (L:=SynthLApp (L:=_4) (R:=SynthLex (l:=A_when_B_abs2))) (R:=_a)
     def _5_manual := Reassoc' (pre:=_5_manual0)
-    def _5_manual' := Reassoc' (pre:=Reassoc' (pre:=_5_manual))
-    #check _5_manual'
+    --def _5_manual' := Reassoc' (pre:=Reassoc' (pre:=_5_manual))
+    --#check _5_manual'
 --instance (priority := low) Reassoc (P:Type u){s1 s2 s3 c}[pre:Synth P (s1 # (s2 # s3)) c] : Synth P ((s1 # s2) # s3) c where
 --  denotation := pre.denotation
 --  stringRep := "(Reassoc "++pre.stringRep++")"
-    def _5 := dbgspecwitness Prop ([| the contents of al equals the contents of bl when al is a permutation of bl |]) ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
+    -- Holding off on this, currently failing due to some missing associativity stuff (probably)
+    --def _5 := dbgspecwitness Prop ([| the contents of al equals the contents of bl when al is a permutation of bl |]) ((S % (@Var ( List value) "bl")) % (@Var (List value) "al"))
     
     -- not actually useful, but poking at coordination
     -- times out
@@ -322,7 +323,7 @@ section specs
   /-
     Why doesn't this resolve? It's literally just a rightward application with two lexicon entries from *this* file!
   -/
-  def its_contents_auto := dbgspecwitness Prop [|its contents|] ((@NP multiset) % (@NP (List value)))
+  --def its_contents_auto := dbgspecwitness Prop [|its contents|] ((@NP multiset) % (@NP (List value)))
 
   #check contents
   def contents_nil_inv_raw := ∀ l, (∀ x, 0 = contents l x) -> l = []
@@ -350,7 +351,7 @@ section specs
          - This trips over some subtlety of Lean's unification algorithm
          - This is a bug in TC search
       -/
-      let its_contents_manual := SynthRApp (L:= SynthLex (l := its_ref)) (R:= SynthLex (l:= contents_lex))
+      let _its_contents_manual := SynthRApp (L:= SynthLex (l := its_ref)) (R:= SynthLex (l:= contents_lex))
       --let its_contents := dbgspecwitness Prop [|its contents|] ((@NP multiset) % (@NP (List value)))
       --let full := AppGL (arg := its_contents) (f := are_empty)
       --Reassoc' (pre:=full)
