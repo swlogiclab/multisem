@@ -154,8 +154,8 @@ def dspec (L : List String) [D: DSynth Prop L [] S] : Prop := D.dsem
 
 set_option synthInstance.maxHeartbeats 400000
 set_option maxHeartbeats 400000
-set_option trace.Meta.synthInstance.instances true
-set_option trace.Meta.synthInstance.newAnswer true
+--set_option trace.Meta.synthInstance.instances true
+--set_option trace.Meta.synthInstance.newAnswer true
 
 -- Let's confirm the proof theory is complete enough to find this
 def three_is_even_parse : DSynth Prop ("three"::"is"::"even"::[]) [] S :=
@@ -239,18 +239,47 @@ instance its_contents_manual_hack : DSynth Prop ("its"::"contents"::"are"::"empt
 def dbgdspec (P:Type u) (X Y : List String)[StrictSubList X Y] (C:Cat) [D:DSynth P X Y C] : DSynth P X Y C := D
 
 
-def contents_nil_inv_spec_d_manual : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
+def contents_nil_inv_spec_d_manual_400K : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
   let any_list_of_value := dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) (S // ((@NP (List value)) ∖ S)) 
   let is_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("when"::"its"::"contents"::"are"::"empty"::[]) ((@NP (List value)) ∖ S)
   -- Yet again, we can't infer semantics for "its contents" even though it's totally trivial. Something about the lexical entries involved are not playing nice with Lean's unification.
-  let its_contents := dbgdspec Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value)))
+  --let its_contents := dbgdspec Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value)))
   --let its_contents_manual : DSynth Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value))) :=
   --  DRApp (L:= DLex (l := its_ref)) (R:=DLex (l := contents_lex))
   -- Even with the above manual construction lifted as before to a hack instance, this next bit fails to parse, suggesting a bug in the port of the Jacobson specialization... Ah, yes, it helps to actually open the module with the required local instances
-  let its_contents_are_empty := dbgdspec Prop ("its"::"contents"::"are"::"empty"::[]) [] (S % (@NP (List value)))
-  --let when_its_contents_are_empty := dbgdspec Prop ("when"::"its"::"contents"::"are"::"empty"::[]) [] (((@NP (List value)) ∖ S) ∖ ((@NP (List value)) ∖ S))
+  --let its_contents_are_empty := dbgdspec Prop ("its"::"contents"::"are"::"empty"::[]) [] (S % (@NP (List value)))
+  let when_its_contents_are_empty := dbgdspec Prop ("when"::"its"::"contents"::"are"::"empty"::[]) [] (((@NP (List value)) ∖ S) ∖ ((@NP (List value)) ∖ S))
+  --let is_empty_when_its_contents_are_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] ((@NP (List value)) ∖ S)
+  --DRapp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
+  (any_list_of_value,is_empty,when_its_contents_are_empty)
+
+set_option synthInstance.maxHeartbeats 800000
+set_option maxHeartbeats 800000
+def contents_nil_inv_spec_d_manual_too_much_for_400K : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
+  let any_list_of_value := dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) (S // ((@NP (List value)) ∖ S)) 
   let is_empty_when_its_contents_are_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] ((@NP (List value)) ∖ S)
-  DRapp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
+  --DRapp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
+  (any_list_of_value,is_empty_when_its_contents_are_empty)
+
+
+
+/-
+  Analysis notes on difflists vs context trees:
+    Fundamentally, difflists represent all possible associations differently from context trees.
+    Context trees are in fact binary trees (not ordered in any particular way). The number of binary trees with n nodes is apparently known to be the (n-1)'th [Catalan number](https://en.wikipedia.org/wiki/Catalan_number), which grows exponentially in n. This is also the number of ways to parenthesize a string of n symbols (which is more conceptually what we're doing). While many sentences can be parsed many different ways, the worst case still requires an exponential search, and in practice we must do the full search for at least a sub-sequence of the original sentence for more interesting grammatical constructions.
+
+    Difflists directly model substrings, without the cost of constructing fresh cons lists for non-suffix substrings.
+    By only representing substrings rather than all associations of the entire string, the search space is constrained: there are only `n*(n+1)/2` (i.e., quadratic) number of substrings to consider.
+
+    But, things aren't *quite* that simple, even if this is roughly correct. The mathematical claims above are true, but the use in the context of search is a bit more complicated.
+
+    The current search strategy for context trees is incomplete. I haven't worked out the math on how starting from a fully right-leaning tree and only including one direction of reassociativity restricts the size of the search space for sentence structure. But we know it's incomplete; some VFA case studies have shown us that. So given how expensive it is in practice *while* also being incomplete in a way that affects examples we care about, it's not clear how important those details really are.
+
+    In both cases, search is recursive. Every time the difflist implementation picks a tentative split, it must recursively pick splits for each side, and try to parse that. The number of actually total splits is still quadratically bounded (and ultimately probably memoized by the StrictSubList relation + Lean's tabled resolution) for difflists, exponentially bounded for trees. But (I'm speculating Lean implementation details here) the difflists can in principle be represented with a quadratic number of pairs where each element comes from a linear number of actual allocated cons-lists. The trees don't permit the same degree of structure sharing. Though again, I'm speculating as to what degree Lean might be able to take advantage of that, *if* I've exposed that possibility adequately in my definitions, and even then that's at best a small factor compared to the overall memory overhead.
+
+
+-/
+
 
 
 -- Here I have to port the 'experiments' section from Multiset to DSynth (those are the rules for variables) and try "for any list of value al for any list of value bl the contents of al equals the contents of bl when al is a permutation of bl" or similar
