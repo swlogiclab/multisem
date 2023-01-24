@@ -79,7 +79,7 @@ section specs
     -- These should be obtained by lifting other entries, but for now we'll define them manually
     -- This is slightly odd because it's conceivable the 'v' portion might be more than a variable
     instance every_named {A}{w}: lexicon Prop "every" (((S // (S % (@Var A w))) // ((@NP A) % (@Var A w))) // (@CN A)) where
-      denotation cn v rest := ∀ (a:A), cn a -> rest a
+      denotation cn _v rest := ∀ (a:A), cn a -> rest a
     --instance and_named_coord {A B}{w v} : lexicon Prop "and" ((S // (S % (@Var A w))) ∖ S) // (S // (S % (@Var B v))) where
     --  denotation rhs lhs := 
   end relocate_later
