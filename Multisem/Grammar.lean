@@ -166,7 +166,7 @@ instance SynthLex (P:Type u){w:String}{C:Cat}[l:lexicon P w C] : Synth P (Contex
   stringRep := "lexicon<"++w++":"++ (reprPrec C 0) ++">"
 
 instance SynthRApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 (c1 // c2)][R:Synth P s2 c2] : Synth P (s1#s2) c1 where
-  denotation := @Synth.denotation P s1 (c1 // c2) L (Synth.denotation s2)
+  denotation := L.denotation R.denotation --@Synth.denotation P s1 (c1 // c2) L (Synth.denotation s2)
   stringRep := "(SynthRApp "++L.stringRep++" "++R.stringRep++")"
 instance SynthLApp (P:Type u){s1 s2 c1 c2}[L:Synth P s1 c1][R:Synth P s2 (c1 ∖ c2)] : Synth P (s1#s2) c2 where
   denotation := R.denotation (L.denotation)
