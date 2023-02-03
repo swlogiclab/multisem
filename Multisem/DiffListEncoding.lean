@@ -38,10 +38,10 @@ namespace lt_tests
   #check reqlt 0 1
   #check reqlt 0 5
   #check reqlt 3 5
-  #check reqlt 0 (sentence_length ("three"::"is"::"even"::[]))
-  #check reqlt 2 (sentence_length ("three"::"is"::"even"::[]))
-  def but_its_lt : lt 0 (sentence_length ("three"::"is"::"even"::[])) :=
-    lt_sentence_length 0 "three" ("is"::"even"::[])
+  --#check reqlt 0 (sentence_length ("three"::"is"::"even"::[]))
+  --#check reqlt 2 (sentence_length ("three"::"is"::"even"::[]))
+  --def but_its_lt : lt 0 (sentence_length ("three"::"is"::"even"::[])) :=
+  --  lt_sentence_length 0 "three" ("is"::"even"::[])
 end lt_tests
 
 /--
@@ -104,8 +104,8 @@ instance DLApp {P}(Front Back1 Back2 : Nat) (A B : Cat)
   --[NonEmptyTail Front Back1]
   [lt Back1 Back2]
   [lt Front Back1]
+  [R : DSynth P Back1 Back2 (A ∖ B)] -- Look for the slash first, bail if it's not
   [L : DSynth P Front Back1 A]
-  [R : DSynth P Back1 Back2 (A ∖ B)]
   : DSynth P Front Back2 B where
   dsem := R.dsem L.dsem
 
@@ -114,8 +114,8 @@ instance DLApp {P}(Front Back1 Back2 : Nat) (A B : Cat)
   always try lexical lookups on singleton diff-lists.
 -/
 instance (priority := default + 100) DLex {P s}(L : Nat)(w:String)(C:Cat)
-  [cur:CurrentString s]
-  [nth:Nth s L w]
+  [_cur:CurrentString s]
+  [_nth:Nth s L w]
   [l : lexicon P w C]
   : DSynth P L (Nat.succ L) C where
   dsem := l.denotation
@@ -125,14 +125,15 @@ instance (priority := default + 100) DLex {P s}(L : Nat)(w:String)(C:Cat)
 instance DShift {P}(Front Back : Nat)(l c r)[lt Front Back][L:DSynth P Front Back (l ∖ (c // r))] : DSynth P Front Back ((l ∖ c) // r) where
   dsem xr xl := L.dsem xl xr
 
-instance DRComp (P:Type u){s smid s' c1 c2 c3}[lt s smid][lt smid s'][L:DSynth P s smid (c1 // c2)][R:DSynth P smid s' (c2 // c3)] : DSynth P s s' (c1 // c3) where
+-- Search right first, try to bias parsing to right-to-left for English
+instance DRComp (P:Type u)(s smid s' c1 c2 c3)[lt smid s'][lt s smid][R:DSynth P smid s' (c2 // c3)][L:DSynth P s smid (c1 // c2)] : DSynth P s s' (c1 // c3) where
   dsem x := L.dsem (R.dsem x)
-instance DLComp (P:Type u){s smid s' c1 c2 c3}[lt s smid][lt smid s'][L:DSynth P s smid (c1 ∖ c2)][R:DSynth P smid s' (c2 ∖ c3)] : DSynth P s s' (c1 ∖ c3) where
+instance DLComp (P:Type u)(s smid s' c1 c2 c3)[lt smid s'][lt s smid][R:DSynth P smid s' (c2 ∖ c3)][L:DSynth P s smid (c1 ∖ c2)] : DSynth P s s' (c1 ∖ c3) where
   dsem x := R.dsem (L.dsem x)
 
 -- English-specific lifting rules
 -- Montague-style lifting for GQs in object position
-instance DMLift (H:Type u){T U:Type u}{s s'}[sem:DSynth H s s' (((@NP T) ∖ S) // (@NP U))] :
+instance DMLift (H:Type u){T U:Type u}(s s')[sem:DSynth H s s' (((@NP T) ∖ S) // (@NP U))] :
   DSynth H s s' (((@NP T) ∖ S) // (S // ((@NP U) ∖ S))) where 
   dsem := fun P x => P (fun y => sem.dsem y x)
 
@@ -184,34 +185,46 @@ namespace DiffJacobson
   -/
   /-- A condensation of `GR` and `SynthRApp` -/
   scoped instance DAppGR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
-    [lt X mid][lt mid Y]
-    [f:DSynth P X mid (A // B)][arg:DSynth P mid Y (B % (@NP C))]
+    [lt X mid]
+    [lt mid Y]
+    [arg:DSynth P mid Y (B % (@NP C))]
+    [f:DSynth P X mid (A // B)]
     : DSynth P X Y (A % (@NP C)) where
     dsem := fun c => f.dsem (arg.dsem c)
   /-- A condensation of `GL` and `SynthLApp` -/
   scoped instance DAppGL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
-    [lt X mid][lt mid Y]
-    [arg:DSynth P X mid (B % (@NP C))][f:DSynth P mid Y (B ∖ A)]
+    [lt mid Y]
+    [lt X mid]
+    [arg:DSynth P X mid (B % (@NP C))]
+    [f:DSynth P mid Y (B ∖ A)]
     : DSynth P X Y (A % (@NP C)) where
     dsem := fun c => f.dsem (arg.dsem c)
   scoped instance DAppZRR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
-    [lt X mid][lt mid Y]
-    [f:DSynth P X mid ((A // (@NP B)) // C)][arg:DSynth P mid Y (C % (@NP B))]
+    [lt mid Y]
+    [lt X mid]
+    [arg:DSynth P mid Y (C % (@NP B))]
+    [f:DSynth P X mid ((A // (@NP B)) // C)]
     : DSynth P X Y (A // (@NP B)) where
     dsem := fun n => f.dsem (arg.dsem n) n
   scoped instance DAppZLR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
-    [lt X mid][lt mid Y]
-    [f:DSynth P X mid (((@NP B) ∖ A) // C)][arg:DSynth P mid Y (C % (@NP B))]
+    [lt mid Y]
+    [lt X mid]
+    [arg:DSynth P mid Y (C % (@NP B))]
+    [f:DSynth P X mid (((@NP B) ∖ A) // C)]
     : DSynth P X Y ((@NP B) ∖ A) where
     dsem := fun n => f.dsem (arg.dsem n) n
   scoped instance DAppZRL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
-    [lt X mid][lt mid Y]
-    [arg:DSynth P X mid (C % (@NP B))][f:DSynth P mid Y (C ∖ (A // (@NP B)))]
+    [lt mid Y]
+    [lt X mid]
+    [arg:DSynth P X mid (C % (@NP B))]
+    [f:DSynth P mid Y (C ∖ (A // (@NP B)))]
     : DSynth P X Y (A // (@NP B)) where
     dsem := fun n => f.dsem (arg.dsem n) n
   scoped instance DAppZLL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
-    [lt X mid][lt mid Y]
-    [arg:DSynth P X mid (C % (@NP B))][f:DSynth P mid Y (C ∖ ((@NP B) ∖ A))]
+    [lt mid Y]
+    [lt X mid]
+    [arg:DSynth P X mid (C % (@NP B))]
+    [f:DSynth P mid Y (C ∖ ((@NP B) ∖ A))]
     : DSynth P X Y (A // (@NP B)) where
     dsem := fun n => f.dsem (arg.dsem n) n
 
@@ -230,7 +243,11 @@ end DiffJacobson
 @[simp]
 --def dspec (L : List String) [D: DSynth Prop L [] S] : Prop := D.dsem
 def dspec (L : List String) [_cur:CurrentString L] [D:DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) S] : Prop := D.dsem
+@[simp]
+def dspec' (L : List String) (n:Nat) [_cur:CurrentString L] [D:DSynth Prop 0 n S] : Prop := D.dsem
+@[simp]
 def dbgdspec (L : List String) (n:Nat) [_cur:CurrentString L] [D:DSynth Prop 0 n S] : DSynth Prop 0 n S := D
+@[simp]
 def dbgdspec' (L : List String) [_cur:CurrentString L] [D:DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) S] : DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) S := D
 
 #check @List.brecOn
@@ -243,7 +260,7 @@ def dbgdspec' (L : List String) [_cur:CurrentString L] [D:DSynth Prop 0 ((@List.
 set_option synthInstance.maxHeartbeats 800000
 set_option maxHeartbeats 800000
 --set_option trace.Meta.synthInstance.instances true
-set_option trace.Meta.synthInstance.newAnswer true
+--set_option trace.Meta.synthInstance.newAnswer true
 
 namespace three_is_even
 
@@ -278,7 +295,7 @@ end three_is_even
 
 ---- VFA Sort examples
 namespace insert_sorted_spec''
-instance : CurrentString ("insertion"::"of"::"any"::"natural"::"maintains"::"sortedness"::[]) where
+local instance : CurrentString ("insertion"::"of"::"any"::"natural"::"maintains"::"sortedness"::[]) where
 
 def insert_sorted_spec'' : insert_sorted_spec -> dspec ("insertion"::"of"::"any"::"natural"::"maintains"::"sortedness"::[]) :=
   by simp [insert_sorted_spec]
@@ -288,51 +305,77 @@ end insert_sorted_spec''
 #check insert_sorted_spec''.insert_sorted_spec''
 
 namespace sort_sorted_spec'
-  instance : CurrentString ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) where
-  def sort_sorted_spec' : sort_sorted_spec -> dspec ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) :=
+  -- AH! The search for this instance was turning up lexical entries for "sortedness", which means it was considering parsing any interleaving of words from both sentences!!!
+  local instance : CurrentString ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) where
+set_option trace.Meta.synthInstance.newAnswer true
+  def sort_sorted_spec' : sort_sorted_spec -> (dspec' ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) 6):=
     by simp [sort_sorted_spec]
+       simp [DSynth.dsem]
        intro H 
+       intro l
        apply H
 end sort_sorted_spec'
+#print sort_sorted_spec'.sort_sorted_spec'.proof_1
 
--- The first VFA example takes <1m, this second one is taking multiple minutes. Is the sentence that much more complex, or are we running into something like cross-contamination from lingering resolution entries, letting the parse of this second example conider lexical findings left-over from the first? Isolating to a separate file would be one way to test this.
+namespace insert_perm_spec'
+  local instance : CurrentString ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[]) where
+  def insert_perm_spec' := dspec ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[])
+end insert_perm_spec'
 
-  --def insert_perm_spec' := dspec ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[])
+namespace sort_perm_spec'
+  local instance : CurrentString ("sort"::"is"::"a"::"permutation"::[]) where
+  def sort_perm_spec' : 
+    sort_perm_spec -> dspec ("sort"::"is"::"a"::"permutation"::[]) :=
+    by simp [sort_perm_spec]
+       intro H
+       exists sort
+end sort_perm_spec'
 
-  --def sort_perm_spec' : 
-    --sort_perm_spec -> dspec ("sort"::"is"::"a"::"permutation"::[]) :=
-    --by simp [sort_perm_spec]
-       --intro H
-       --exists sort
-  --def insertion_sort_correct_spec' : insertion_sort_correct_spec -> dspec ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) :=
-    --by simp [insertion_sort_correct_spec]
-       --simp [is_a_sorting_algorithm]
-       --intro H
-       --exists sort
-       --simp
-       --apply And.intro
-       --. intro l
-         --match (H l) with
-         --| ⟨ _, b ⟩ => exact b
-       --. intro l
-         --match (H l) with
-         --| ⟨ a, _ ⟩ => exact a
+namespace insertion_sort_correct_spec
+  local instance : CurrentString ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) where
+  def insertion_sort_correct_spec' : insertion_sort_correct_spec -> dspec ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) :=
+    by simp [insertion_sort_correct_spec]
+       simp [is_a_sorting_algorithm]
+       intro H
+       exists sort
+       simp
+       apply And.intro
+       . intro l
+         match (H l) with
+         | ⟨ _, b ⟩ => exact b
+       . intro l
+         match (H l) with
+         | ⟨ a, _ ⟩ => exact a
+end insertion_sort_correct_spec
 
----- VFA MultiSet examples
----- TODO: This is only the ones that worked at the time of initial DiffList experiments
+-- VFA MultiSet examples
+-- TODO: This is only the ones that worked at the time of initial DiffList experiments
 
---@[simp]
---def union_assoc_spec_d := dspec ("union"::"is"::"associative"::[])
---@[simp]
---def insert_contents_spec_d := dspec ("insertion"::"of"::"any"::"value"::"preserves"::"contents"::[])
---@[simp]
---def sort_contents_spec_d := dspec ("sort"::"preserves"::"contents"::[])
+namespace union_asoc_spec
+  local instance : CurrentString ("union"::"is"::"associative"::[]) where
+  @[simp]
+  def union_assoc_spec_d := dspec ("union"::"is"::"associative"::[])
+end union_asoc_spec
 
---@[simp]
---def insertion_sort_correct_spec2_d := dspec ("sort"::"preserves"::"contents"::"and"::"sorts"::[])
+namespace insert_contents_spec_d
+  local instance : CurrentString ("insertion"::"of"::"any"::"value"::"preserves"::"contents"::[]) where
+  @[simp]
+  def insert_contents_spec_d := dspec ("insertion"::"of"::"any"::"value"::"preserves"::"contents"::[])
+end insert_contents_spec_d
+namespace sort_contents_spec_d
+  local instance : CurrentString ("sort"::"preserves"::"contents"::[]) where
+  @[simp]
+  def sort_contents_spec_d := dspec ("sort"::"preserves"::"contents"::[])
+end sort_contents_spec_d
+
+namespace insertion_sort_correct_spec2_d
+  local instance : CurrentString ("sort"::"preserves"::"contents"::"and"::"sorts"::[]) where
+  @[simp]
+  def insertion_sort_correct_spec2_d := dspec ("sort"::"preserves"::"contents"::"and"::"sorts"::[])
+end insertion_sort_correct_spec2_d
 
 
---open DiffJacobson
+open DiffJacobson
 
 --instance its_contents_manual_hack : DSynth Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value))) :=
   --DRApp (L:= DLex (l := its_ref)) (R:=DLex (l := contents_lex))
