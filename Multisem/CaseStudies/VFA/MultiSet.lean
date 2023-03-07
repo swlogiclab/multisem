@@ -66,7 +66,7 @@ section specs
       denotation := λ r l x => r x -> l x
     instance when_lwhent_ref {A:Type}: lexicon Prop "when" ((((@NP A) ∖ S) ∖ ((@NP A) ∖ S)) // (S % (@NP A))) where
       denotation := λ r l x => r x -> l x
-    instance its_ref {A B:Type}: lexicon Prop "its" (((@NP B) % (@NP A)) / (@NP (A -> B))) where
+    instance its_ref {A B:Type}: lexicon Prop "its" (((@NP B) % (@NP A)) // (@NP (A -> B))) where
       denotation := λ p a => p a
     instance any_head {A:Type}: lexicon Prop "any" ((S // ((@NP A) ∖ S)) // (@CN A)) where
       denotation := λ p rest => ∀ (x:A), p x -> rest x

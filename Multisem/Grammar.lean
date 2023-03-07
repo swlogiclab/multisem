@@ -24,14 +24,20 @@ open Cat
 -- These are some currently-disabled notations for writing the slashes
 -- At the moment we can't get lexicon entries working with a mix of explicit and notation-based categories, which we need for backwards compat right now
 -- We can allow writing right slashes by implementing Div for Cat
-instance CatDiv.{q} : Div (Cat.{q}) where
-  div := rslash
+/- 
+  We're dropping the div typeclass instance. Going this route adds noticeable overhead,
+  so we've been using the custom `//` notation below, but leaving this instance open
+  has caused issues with accidentally using `/` instead of `//` in lexicon entries,
+  which then takes forever to track down...
+-/
+--instance CatDiv.{q} : Div (Cat.{q}) where
+--  div := rslash
 
 -- This is probably not best practice, but we really do need typeclass resolution to unfold these right now. Later if we are more uniform in using the notations for lexicon entries, we could probably remove these attribute overrides.
-attribute [simp] HDiv.hDiv
-attribute [simp] Div.div
+--attribute [simp] HDiv.hDiv
+--attribute [simp] Div.div
 
-theorem _checkCatDiv : (S / (@NP Nat)) = rslash S (@NP Nat) := by simp
+--theorem _checkCatDiv : (S / (@NP Nat)) = rslash S (@NP Nat) := by simp
 -- We also want to write left slashes
 class LDiv.{q} (α : Type q) where
   lDiv : α → α → α
