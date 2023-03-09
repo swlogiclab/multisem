@@ -275,6 +275,9 @@ def three_is_even_parse : DSynth Prop 0 3 S :=
   DLApp (L:=three) (R:=is_even)
 #check three_is_even_parse.dsem
 
+def three_is_even_imp_false : three_is_even_parse.dsem -> False :=
+  by simp [three_is_even_parse]
+
 @[simp]
 def three_is_even_diff := dbgdspec ("three"::"is"::"even"::[]) 3
 
@@ -307,7 +310,6 @@ end insert_sorted_spec''
 namespace sort_sorted_spec'
   -- AH! The search for this instance was turning up lexical entries for "sortedness", which means it was considering parsing any interleaving of words from both sentences!!!
   local instance : CurrentString ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) where
-set_option trace.Meta.synthInstance.newAnswer true
   def sort_sorted_spec' : sort_sorted_spec -> (dspec' ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) 6):=
     by simp [sort_sorted_spec]
        simp [DSynth.dsem]
@@ -320,6 +322,10 @@ end sort_sorted_spec'
 namespace insert_perm_spec'
   local instance : CurrentString ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[]) where
   def insert_perm_spec' := dspec ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[])
+  def insert_perm_spec'' : insert_perm_spec -> insert_perm_spec' :=
+    by simp [insert_perm_spec,insert_perm_spec']
+       intro H
+       exists insert
 end insert_perm_spec'
 
 namespace sort_perm_spec'
@@ -333,6 +339,12 @@ end sort_perm_spec'
 
 namespace insertion_sort_correct_spec
   local instance : CurrentString ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) where
+  def insertion_sort_correct_spec_parse := dbgdspec ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) 6
+
+  -- Without outParam on DSynth, this becomes: (∀ (l : List Nat), sorted (sort l)) ∧ ∀ (l : List Nat), Permutation l (sort l)
+  -- With outParam on DSynth, this becomes: ∃ a, ((∀ (l : List Nat), sorted (a l)) ∧ ∀ (l : List Nat), Permutation l (a l)) ∧ a = sort 
+  -- So the outParam guides this to using 'a' as an in situ quantifier via `a_directobject`, while without it it ends up using `a_cn_as_adj` (I think, hard to check the exact derivation, should try with the newInstances flag to confirm).
+  -- Both are equivalent, but this proof of equivalence with the manual spec is sensitive to this change.
   def insertion_sort_correct_spec' : insertion_sort_correct_spec -> dspec ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) :=
     by simp [insertion_sort_correct_spec]
        simp [is_a_sorting_algorithm]
@@ -375,7 +387,9 @@ namespace insertion_sort_correct_spec2_d
 end insertion_sort_correct_spec2_d
 
 
-open DiffJacobson
+namespace contents_nil_inv_spec
+  open DiffJacobson
+  local instance : CurrentString ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) where
 
 --instance its_contents_manual_hack : DSynth Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value))) :=
   --DRApp (L:= DLex (l := its_ref)) (R:=DLex (l := contents_lex))
@@ -408,9 +422,20 @@ open DiffJacobson
   --DRApp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
   ----(any_list_of_value,is_empty_when_its_contents_are_empty)
 
+--  #check @its_ref
+--  #check @contents_lex
+--set_option trace.Meta.synthInstance.newAnswer true
+--set_option trace.Meta.synthInstance.instances true
+  instance its_contents_manual_hack : DSynth Prop 7 9 ((@NP multiset) % (@NP (List value))) :=
+    DRApp (L:= DLex 7 "its" (((@NP multiset) % (@NP (List value))) // (@NP (List value -> multiset)))) (R:=DLex 8 "contents" (@NP (List value -> multiset)))
+    -- Can't infer Nth instances... maybe write nth and nth_instance helpers to manually specify
+--  #check @contents_lex
 
+--def contents_nil_inv_spec_d_complete : Prop :=
+--  dspec ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[])
 --def contents_nil_inv_spec_d_complete : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
   --dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S 
+end contents_nil_inv_spec
 
 --/-
   --Analysis notes on difflists vs context trees:

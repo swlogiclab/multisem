@@ -37,7 +37,11 @@ instance DLApp {P}{Front Back1 Back2 : List String} {A B : Cat}
   : DSynth P Front Back2 B where
   dsem := R.dsem L.dsem
 
-instance DLex {P}{L : List String}{w:String}{C:Cat}
+/--
+  An instance for lexical entries. This has the highest priority of any instance, as we should
+  always try lexical lookups on singleton diff-lists.
+-/
+instance (priority := default + 100) DLex {P}{L : List String}{w:String}{C:Cat}
   [l : lexicon P w C]
   : DSynth P (w::L) L C where
   dsem := l.denotation
@@ -253,15 +257,17 @@ def contents_nil_inv_spec_d_manual_400K : DSynth Prop ("any"::"list"::"of"::"val
   --DRapp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
   (any_list_of_value,is_empty,when_its_contents_are_empty)
 
-set_option synthInstance.maxHeartbeats 800000
-set_option maxHeartbeats 800000
+set_option synthInstance.maxHeartbeats 8000000
+set_option maxHeartbeats 8000000
 def contents_nil_inv_spec_d_manual_too_much_for_400K : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
   let any_list_of_value := dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) (S // ((@NP (List value)) ∖ S)) 
   let is_empty_when_its_contents_are_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] ((@NP (List value)) ∖ S)
-  --DRapp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
-  (any_list_of_value,is_empty_when_its_contents_are_empty)
+  DRApp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
+  --(any_list_of_value,is_empty_when_its_contents_are_empty)
 
 
+def contents_nil_inv_spec_d_complete : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
+  dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S 
 
 /-
   Analysis notes on difflists vs context trees:

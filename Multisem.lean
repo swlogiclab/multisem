@@ -9,7 +9,7 @@ import Multisem.CaseStudies.VFA.Sort
 import Multisem.CaseStudies.VFA.MultiSet
 import Multisem.Examples.Misc
 import Multisem.Examples.TimeIt
-open Cat
 
-
-
+--import Multisem.Difflists
+--import Multisem.SearchOrderCheck
+import Multisem.DiffListEncoding
