@@ -1,4 +1,4 @@
-import Multisem.Text.Macros
+--import Multisem.Text.Macros
 import Multisem.Lexicon
 
 universe u v
@@ -78,71 +78,60 @@ namespace sort_specs
   -- Long long term, we could bake in some morphology that lifts 'sorted' from ADJ to 'sortedness' referring to the underlying predicate
   instance sortedness_lex : lexicon Prop "sortedness" (@NP (List Nat -> Prop)) where
     denotation := sorted
-  -- Sanity check: works, just need an updated lexical entry for 'any'
-  section DebuggingExample
-    def _check := pspec [|insertion of three maintains sortedness|]
-    #check (any_ppobject (A:=(List Nat)) (C:=@NP (List Nat -> List Nat)))
-    def insertion_of := dbgspecwitness Prop [|insertion of|] ((@NP (List Nat -> List Nat)) // (@NP Nat))
-    def any_natural {C:Cat} := dbgspecwitness Prop [|any natural|] ((C // (@NP Nat)) ∖ (S // (C ∖ S)))
-    def any_natural_manual {C:Cat} : Synth Prop [|any natural|] ((C // (@NP Nat)) ∖ (S // (C ∖ S))) :=
-      SynthRApp (L:=SynthLex (l:= any_ppobject)) (R:=SynthLex (l:= natural_lex))
-    def insertion_of_any_natural := dbgspec [|insertion of any natural|] (S // ((@NP (List Nat -> List Nat)) ∖ S))
-    def maintains_sortedness := dbgspec [| maintains sortedness |] ((@NP (List Nat -> List Nat)) ∖ S)
-  end DebuggingExample
+
 
   -- Original was: insertion maintains sortedness
   -- Candidate: insertion of any natural maintains sortedness
-  #print insert_sorted_spec
-  def insert_sorted_spec' : 
-    insert_sorted_spec ->
-    pspec [| insertion of any natural maintains sortedness |] :=
-  by simp [insert_sorted_spec]
-     intro H 
-     apply H
+  --#print insert_sorted_spec
+  --def insert_sorted_spec' : 
+  --  insert_sorted_spec =
+  --  pspec [| insertion of any natural maintains sortedness |] :=
+  --by simp [insert_sorted_spec]
 
   -- Original was: insertion sort makes a list sorted
   -- This use of "a" is universal, rather than existential, let's switch to any
   -- This original is actually ambiguous between the universal and existential reading of "a", so the rewrite improves precision
   -- Proposal is: sort sorts any list
   -- Reasoning: 'makes' here would normally suggest the list is being *mutated*, which of course it is not. Instead, we'd like to be more explicit about it returning a (possibly distinct) sorted list.
-  #print sort_sorted_spec
-  def sort_sorted_spec' : sort_sorted_spec -> pspec [| sort sorts any list of naturals|] :=
-    by simp [sort_sorted_spec]
-       intro H 
-       apply H
+--  #print sort_sorted_spec
+--  def sort_sorted_spec' : sort_sorted_spec -> pspec [| sort sorts any list of naturals|] :=
+--    by simp [sort_sorted_spec]
+--       intro H 
+--       apply H
 
   -- No original English, this is a proposal
   -- We'll take the route of overloading permutation to talk about one function (into `List Nat`, since that's what `Permutation` is defined on) being a permutation of another if the results for any argument set is a permutation.
   -- Technically we could generalize this for any number of arguments, but we'll just hard-code 2 for now.
   -- Proposal: insert is a permutation of cons
-  #print insert_perm_spec
-  def insert_perm_spec' := pspec [| insert is a permutation of cons |]
+  --#print insert_perm_spec
+  --def insert_perm_spec' := pspec [| insert is a permutation of cons |]
 
   -- Handling the original
-  def sort_perm_spec' : 
-    sort_perm_spec -> pspec [| sort is a permutation |] :=
-    by simp [sort_perm_spec]
-       intro H
-       exists sort
+  --def sort_perm_spec' : 
+  --  sort_perm_spec -> pspec [| sort is a permutation |] :=
+  --  by simp [sort_perm_spec]
+  --     intro H
+  --     exists sort
 
   -- No original English, but can intuit "sort is a sorting algorithm" from the identifier
   -- We will split sorting from permuting
-  #print insertion_sort_correct_spec
-  #print is_a_sorting_algorithm
-  def insertion_sort_correct_spec' : insertion_sort_correct_spec -> pspec [| sort is a sorting permuting algorithm |] :=
-    by simp [insertion_sort_correct_spec]
-       simp [is_a_sorting_algorithm]
-       intro H
-       exists sort
-       simp
-       apply And.intro
-       . intro l
-         match (H l) with
-         | ⟨ _, b ⟩ => exact b
-       . intro l
-         match (H l) with
-         | ⟨ a, _ ⟩ => exact a
+  --#print insertion_sort_correct_spec
+  --#print is_a_sorting_algorithm
+  --def insertion_sort_correct_spec' : insertion_sort_correct_spec -> pspec [| sort is a sorting permuting algorithm |] :=
+  --  by simp [insertion_sort_correct_spec]
+  --     simp [is_a_sorting_algorithm]
+  --     intro H
+  --     exists sort
+  --     simp
+  --     apply And.intro
+  --     . intro l
+  --       match (H l) with
+  --       | ⟨ _, b ⟩ => exact b
+  --     . intro l
+  --       match (H l) with
+  --       | ⟨ a, _ ⟩ => exact a
 
   -- This leaves the two lemmas proving equivalence of two sortedness defs
   -- These appear to be below the level of detail we want in English
 end sort_specs
+end sort

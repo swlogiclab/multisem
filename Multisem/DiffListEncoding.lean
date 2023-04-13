@@ -1,9 +1,9 @@
 import Multisem.Grammar
 import Multisem.Lexicon
 -- Temporary while exploring this as an alternative context structure:
-import Multisem.CaseStudies.VFA.Sort
-import Multisem.CaseStudies.VFA.MultiSet
-open sort
+--import Multisem.CaseStudies.VFA.Sort
+--import Multisem.CaseStudies.VFA.MultiSet
+--open sort
 
 open Cat
 
@@ -297,163 +297,167 @@ end three_is_even
   --by simp
 
 ---- VFA Sort examples
-namespace insert_sorted_spec''
-local instance : CurrentString ("insertion"::"of"::"any"::"natural"::"maintains"::"sortedness"::[]) where
+--namespace insert_sorted_spec''
+--local instance : CurrentString ("insertion"::"of"::"any"::"natural"::"maintains"::"sortedness"::[]) where
+--
+--def insert_sorted_spec'' : insert_sorted_spec -> dspec ("insertion"::"of"::"any"::"natural"::"maintains"::"sortedness"::[]) :=
+--  by simp [insert_sorted_spec]
+--     intro H
+--     apply H
+--end insert_sorted_spec''
+--#check insert_sorted_spec''.insert_sorted_spec''
 
-def insert_sorted_spec'' : insert_sorted_spec -> dspec ("insertion"::"of"::"any"::"natural"::"maintains"::"sortedness"::[]) :=
-  by simp [insert_sorted_spec]
-     intro H
-     apply H
-end insert_sorted_spec''
-#check insert_sorted_spec''.insert_sorted_spec''
+--namespace sort_sorted_spec'
+--  -- AH! The search for this instance was turning up lexical entries for "sortedness", which means it was considering parsing any interleaving of words from both sentences!!!
+--  local instance : CurrentString ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) where
+--  def sort_sorted_spec' : sort_sorted_spec -> (dspec' ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) 6):=
+--    by simp [sort_sorted_spec]
+--       simp [DSynth.dsem]
+--       intro H 
+--       intro l
+--       apply H
+--end sort_sorted_spec'
+--#print sort_sorted_spec'.sort_sorted_spec'.proof_1
 
-namespace sort_sorted_spec'
-  -- AH! The search for this instance was turning up lexical entries for "sortedness", which means it was considering parsing any interleaving of words from both sentences!!!
-  local instance : CurrentString ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) where
-  def sort_sorted_spec' : sort_sorted_spec -> (dspec' ("sort"::"sorts"::"any"::"list"::"of"::"naturals"::[]) 6):=
-    by simp [sort_sorted_spec]
-       simp [DSynth.dsem]
-       intro H 
-       intro l
-       apply H
-end sort_sorted_spec'
-#print sort_sorted_spec'.sort_sorted_spec'.proof_1
+--namespace insert_perm_spec'
+--  local instance : CurrentString ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[]) where
+--  def insert_perm_spec' := dspec ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[])
+--  def insert_perm_spec'' : insert_perm_spec -> insert_perm_spec' :=
+--    by simp [insert_perm_spec,insert_perm_spec']
+--       intro H
+--       exists insert
+--end insert_perm_spec'
 
-namespace insert_perm_spec'
-  local instance : CurrentString ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[]) where
-  def insert_perm_spec' := dspec ("insert"::"is"::"a"::"permutation"::"of"::"cons"::[])
-  def insert_perm_spec'' : insert_perm_spec -> insert_perm_spec' :=
-    by simp [insert_perm_spec,insert_perm_spec']
-       intro H
-       exists insert
-end insert_perm_spec'
+--namespace sort_perm_spec'
+--  local instance : CurrentString ("sort"::"is"::"a"::"permutation"::[]) where
+--  def sort_perm_spec' : 
+--    sort_perm_spec -> dspec ("sort"::"is"::"a"::"permutation"::[]) :=
+--    by simp [sort_perm_spec]
+--       intro H
+--       exists sort
+--end sort_perm_spec'
 
-namespace sort_perm_spec'
-  local instance : CurrentString ("sort"::"is"::"a"::"permutation"::[]) where
-  def sort_perm_spec' : 
-    sort_perm_spec -> dspec ("sort"::"is"::"a"::"permutation"::[]) :=
-    by simp [sort_perm_spec]
-       intro H
-       exists sort
-end sort_perm_spec'
-
-namespace insertion_sort_correct_spec
-  local instance : CurrentString ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) where
-  def insertion_sort_correct_spec_parse := dbgdspec ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) 6
-
-  -- Without outParam on DSynth, this becomes: (∀ (l : List Nat), sorted (sort l)) ∧ ∀ (l : List Nat), Permutation l (sort l)
-  -- With outParam on DSynth, this becomes: ∃ a, ((∀ (l : List Nat), sorted (a l)) ∧ ∀ (l : List Nat), Permutation l (a l)) ∧ a = sort 
-  -- So the outParam guides this to using 'a' as an in situ quantifier via `a_directobject`, while without it it ends up using `a_cn_as_adj` (I think, hard to check the exact derivation, should try with the newInstances flag to confirm).
-  -- Both are equivalent, but this proof of equivalence with the manual spec is sensitive to this change.
-  def insertion_sort_correct_spec' : insertion_sort_correct_spec -> dspec ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) :=
-    by simp [insertion_sort_correct_spec]
-       simp [is_a_sorting_algorithm]
-       intro H
-       exists sort
-       simp
-       apply And.intro
-       . intro l
-         match (H l) with
-         | ⟨ _, b ⟩ => exact b
-       . intro l
-         match (H l) with
-         | ⟨ a, _ ⟩ => exact a
-end insertion_sort_correct_spec
+--namespace insertion_sort_correct_spec
+--  local instance : CurrentString ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) where
+--  def insertion_sort_correct_spec_parse := dbgdspec ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) 6
+--
+--  -- Without outParam on DSynth, this becomes: (∀ (l : List Nat), sorted (sort l)) ∧ ∀ (l : List Nat), Permutation l (sort l)
+--  -- With outParam on DSynth, this becomes: ∃ a, ((∀ (l : List Nat), sorted (a l)) ∧ ∀ (l : List Nat), Permutation l (a l)) ∧ a = sort 
+--  -- So the outParam guides this to using 'a' as an in situ quantifier via `a_directobject`, while without it it ends up using `a_cn_as_adj` (I think, hard to check the exact derivation, should try with the newInstances flag to confirm).
+--  -- Both are equivalent, but this proof of equivalence with the manual spec is sensitive to this change.
+--  -- Should comment this out temporarily until I'm done checking on the outParam perf impact
+--  def insertion_sort_correct_spec' : insertion_sort_correct_spec -> dspec ("sort"::"is"::"a"::"sorting"::"permuting"::"algorithm"::[]) :=
+--    by simp [insertion_sort_correct_spec]
+--       simp [is_a_sorting_algorithm]
+--       intro H
+--       exists sort
+--       simp
+--       apply And.intro
+--       . intro l
+--         match (H l) with
+--         | ⟨ _, b ⟩ => exact b
+--       . intro l
+--         match (H l) with
+--         | ⟨ a, _ ⟩ => exact a
+--end insertion_sort_correct_spec
 
 -- VFA MultiSet examples
 -- TODO: This is only the ones that worked at the time of initial DiffList experiments
 
-namespace union_asoc_spec
-  local instance : CurrentString ("union"::"is"::"associative"::[]) where
-  @[simp]
-  def union_assoc_spec_d := dspec ("union"::"is"::"associative"::[])
-end union_asoc_spec
+-- Commenting out until I revive them as individual files, so I can test the individual sort files with this machinery
 
-namespace insert_contents_spec_d
-  local instance : CurrentString ("insertion"::"of"::"any"::"value"::"preserves"::"contents"::[]) where
-  @[simp]
-  def insert_contents_spec_d := dspec ("insertion"::"of"::"any"::"value"::"preserves"::"contents"::[])
-end insert_contents_spec_d
-namespace sort_contents_spec_d
-  local instance : CurrentString ("sort"::"preserves"::"contents"::[]) where
-  @[simp]
-  def sort_contents_spec_d := dspec ("sort"::"preserves"::"contents"::[])
-end sort_contents_spec_d
-
-namespace insertion_sort_correct_spec2_d
-  local instance : CurrentString ("sort"::"preserves"::"contents"::"and"::"sorts"::[]) where
-  @[simp]
-  def insertion_sort_correct_spec2_d := dspec ("sort"::"preserves"::"contents"::"and"::"sorts"::[])
-end insertion_sort_correct_spec2_d
-
-
-namespace contents_nil_inv_spec
-  open DiffJacobson
-  local instance : CurrentString ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) where
-
---instance its_contents_manual_hack : DSynth Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value))) :=
-  --DRApp (L:= DLex (l := its_ref)) (R:=DLex (l := contents_lex))
-
----- TODO: plural values
-----def contents_nil_inv_spec_d := dspec ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[])
-
---def dbgdspec (P:Type u) (X Y : List String)[StrictSubList X Y] (C:Cat) [D:DSynth P X Y C] : DSynth P X Y C := D
-
-
---def contents_nil_inv_spec_d_manual_400K : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
-  --let any_list_of_value := dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) (S // ((@NP (List value)) ∖ S)) 
-  --let is_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("when"::"its"::"contents"::"are"::"empty"::[]) ((@NP (List value)) ∖ S)
-  ---- Yet again, we can't infer semantics for "its contents" even though it's totally trivial. Something about the lexical entries involved are not playing nice with Lean's unification.
-  ----let its_contents := dbgdspec Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value)))
-  ----let its_contents_manual : DSynth Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value))) :=
-  ----  DRApp (L:= DLex (l := its_ref)) (R:=DLex (l := contents_lex))
-  ---- Even with the above manual construction lifted as before to a hack instance, this next bit fails to parse, suggesting a bug in the port of the Jacobson specialization... Ah, yes, it helps to actually open the module with the required local instances
-  ----let its_contents_are_empty := dbgdspec Prop ("its"::"contents"::"are"::"empty"::[]) [] (S % (@NP (List value)))
-  --let when_its_contents_are_empty := dbgdspec Prop ("when"::"its"::"contents"::"are"::"empty"::[]) [] (((@NP (List value)) ∖ S) ∖ ((@NP (List value)) ∖ S))
-  ----let is_empty_when_its_contents_are_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] ((@NP (List value)) ∖ S)
-  ----DRapp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
-  --(any_list_of_value,is_empty,when_its_contents_are_empty)
-
---set_option synthInstance.maxHeartbeats 8000000
---set_option maxHeartbeats 8000000
---def contents_nil_inv_spec_d_manual_too_much_for_400K : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
-  --let any_list_of_value := dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) (S // ((@NP (List value)) ∖ S)) 
-  --let is_empty_when_its_contents_are_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] ((@NP (List value)) ∖ S)
-  --DRApp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
-  ----(any_list_of_value,is_empty_when_its_contents_are_empty)
-
---  #check @its_ref
---  #check @contents_lex
---set_option trace.Meta.synthInstance.newAnswer true
---set_option trace.Meta.synthInstance.instances true
-  instance its_contents_manual_hack : DSynth Prop 7 9 ((@NP multiset) % (@NP (List value))) :=
-    DRApp (L:= DLex 7 "its" (((@NP multiset) % (@NP (List value))) // (@NP (List value -> multiset)))) (R:=DLex 8 "contents" (@NP (List value -> multiset)))
-    -- Can't infer Nth instances... maybe write nth and nth_instance helpers to manually specify
---  #check @contents_lex
-
---def contents_nil_inv_spec_d_complete : Prop :=
---  dspec ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[])
---def contents_nil_inv_spec_d_complete : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
-  --dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S 
-end contents_nil_inv_spec
-
---/-
-  --Analysis notes on difflists vs context trees:
-    --Fundamentally, difflists represent all possible associations differently from context trees.
-    --Context trees are in fact binary trees (not ordered in any particular way). The number of binary trees with n nodes is apparently known to be the (n-1)'th [Catalan number](https://en.wikipedia.org/wiki/Catalan_number), which grows exponentially in n. This is also the number of ways to parenthesize a string of n symbols (which is more conceptually what we're doing). While many sentences can be parsed many different ways, the worst case still requires an exponential search, and in practice we must do the full search for at least a sub-sequence of the original sentence for more interesting grammatical constructions.
-
-    --Difflists directly model substrings, without the cost of constructing fresh cons lists for non-suffix substrings.
-    --By only representing substrings rather than all associations of the entire string, the search space is constrained: there are only `n*(n+1)/2` (i.e., quadratic) number of substrings to consider.
-
-    --But, things aren't *quite* that simple, even if this is roughly correct. The mathematical claims above are true, but the use in the context of search is a bit more complicated.
-
-    --The current search strategy for context trees is incomplete. I haven't worked out the math on how starting from a fully right-leaning tree and only including one direction of reassociativity restricts the size of the search space for sentence structure. But we know it's incomplete; some VFA case studies have shown us that. So given how expensive it is in practice *while* also being incomplete in a way that affects examples we care about, it's not clear how important those details really are.
-
-    --In both cases, search is recursive. Every time the difflist implementation picks a tentative split, it must recursively pick splits for each side, and try to parse that. The number of actually total splits is still quadratically bounded (and ultimately probably memoized by the StrictSubList relation + Lean's tabled resolution) for difflists, exponentially bounded for trees. But (I'm speculating Lean implementation details here) the difflists can in principle be represented with a quadratic number of pairs where each element comes from a linear number of actual allocated cons-lists. The trees don't permit the same degree of structure sharing. Though again, I'm speculating as to what degree Lean might be able to take advantage of that, *if* I've exposed that possibility adequately in my definitions, and even then that's at best a small factor compared to the overall memory overhead.
-
-
----/
-
-
-
----- Here I have to port the 'experiments' section from Multiset to DSynth (those are the rules for variables) and try "for any list of value al for any list of value bl the contents of al equals the contents of bl when al is a permutation of bl" or similar
+--namespace union_asoc_spec
+--  local instance : CurrentString ("union"::"is"::"associative"::[]) where
+--  @[simp]
+--  def union_assoc_spec_d := dspec ("union"::"is"::"associative"::[])
+--end union_asoc_spec
+--
+--namespace insert_contents_spec_d
+--  local instance : CurrentString ("insertion"::"of"::"any"::"value"::"preserves"::"contents"::[]) where
+--  @[simp]
+--  def insert_contents_spec_d := dspec ("insertion"::"of"::"any"::"value"::"preserves"::"contents"::[])
+--end insert_contents_spec_d
+--namespace sort_contents_spec_d
+--  local instance : CurrentString ("sort"::"preserves"::"contents"::[]) where
+--  @[simp]
+--  def sort_contents_spec_d := dspec ("sort"::"preserves"::"contents"::[])
+--end sort_contents_spec_d
+--
+--namespace insertion_sort_correct_spec2_d
+--  local instance : CurrentString ("sort"::"preserves"::"contents"::"and"::"sorts"::[]) where
+--  @[simp]
+--  def insertion_sort_correct_spec2_d := dspec ("sort"::"preserves"::"contents"::"and"::"sorts"::[])
+--end insertion_sort_correct_spec2_d
+--
+--
+--namespace contents_nil_inv_spec
+--  open DiffJacobson
+--  local instance : CurrentString ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) where
+--
+----instance its_contents_manual_hack : DSynth Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value))) :=
+--  --DRApp (L:= DLex (l := its_ref)) (R:=DLex (l := contents_lex))
+--
+------ TODO: plural values
+------def contents_nil_inv_spec_d := dspec ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[])
+--
+----def dbgdspec (P:Type u) (X Y : List String)[StrictSubList X Y] (C:Cat) [D:DSynth P X Y C] : DSynth P X Y C := D
+--
+--
+----def contents_nil_inv_spec_d_manual_400K : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
+--  --let any_list_of_value := dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) (S // ((@NP (List value)) ∖ S)) 
+--  --let is_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("when"::"its"::"contents"::"are"::"empty"::[]) ((@NP (List value)) ∖ S)
+--  ---- Yet again, we can't infer semantics for "its contents" even though it's totally trivial. Something about the lexical entries involved are not playing nice with Lean's unification.
+--  ----let its_contents := dbgdspec Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value)))
+--  ----let its_contents_manual : DSynth Prop ("its"::"contents"::"are"::"empty"::[]) ("are"::"empty"::[]) ((@NP multiset) % (@NP (List value))) :=
+--  ----  DRApp (L:= DLex (l := its_ref)) (R:=DLex (l := contents_lex))
+--  ---- Even with the above manual construction lifted as before to a hack instance, this next bit fails to parse, suggesting a bug in the port of the Jacobson specialization... Ah, yes, it helps to actually open the module with the required local instances
+--  ----let its_contents_are_empty := dbgdspec Prop ("its"::"contents"::"are"::"empty"::[]) [] (S % (@NP (List value)))
+--  --let when_its_contents_are_empty := dbgdspec Prop ("when"::"its"::"contents"::"are"::"empty"::[]) [] (((@NP (List value)) ∖ S) ∖ ((@NP (List value)) ∖ S))
+--  ----let is_empty_when_its_contents_are_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] ((@NP (List value)) ∖ S)
+--  ----DRapp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
+--  --(any_list_of_value,is_empty,when_its_contents_are_empty)
+--
+----set_option synthInstance.maxHeartbeats 8000000
+----set_option maxHeartbeats 8000000
+----def contents_nil_inv_spec_d_manual_too_much_for_400K : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
+--  --let any_list_of_value := dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) (S // ((@NP (List value)) ∖ S)) 
+--  --let is_empty_when_its_contents_are_empty := dbgdspec Prop ("is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] ((@NP (List value)) ∖ S)
+--  --DRApp (L:=any_list_of_value) (R:=is_empty_when_its_contents_are_empty)
+--  ----(any_list_of_value,is_empty_when_its_contents_are_empty)
+--
+----  #check @its_ref
+----  #check @contents_lex
+----set_option trace.Meta.synthInstance.newAnswer true
+----set_option trace.Meta.synthInstance.instances true
+--  instance its_contents_manual_hack : DSynth Prop 7 9 ((@NP multiset) % (@NP (List value))) :=
+--    DRApp (L:= DLex 7 "its" (((@NP multiset) % (@NP (List value))) // (@NP (List value -> multiset)))) (R:=DLex 8 "contents" (@NP (List value -> multiset)))
+--    -- Can't infer Nth instances... maybe write nth and nth_instance helpers to manually specify
+----  #check @contents_lex
+--
+----def contents_nil_inv_spec_d_complete : Prop :=
+----  dspec ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[])
+----def contents_nil_inv_spec_d_complete : DSynth Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S :=
+--  --dbgdspec Prop ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) [] S 
+--end contents_nil_inv_spec
+--
+----/-
+--  --Analysis notes on difflists vs context trees:
+--    --Fundamentally, difflists represent all possible associations differently from context trees.
+--    --Context trees are in fact binary trees (not ordered in any particular way). The number of binary trees with n nodes is apparently known to be the (n-1)'th [Catalan number](https://en.wikipedia.org/wiki/Catalan_number), which grows exponentially in n. This is also the number of ways to parenthesize a string of n symbols (which is more conceptually what we're doing). While many sentences can be parsed many different ways, the worst case still requires an exponential search, and in practice we must do the full search for at least a sub-sequence of the original sentence for more interesting grammatical constructions.
+--
+--    --Difflists directly model substrings, without the cost of constructing fresh cons lists for non-suffix substrings.
+--    --By only representing substrings rather than all associations of the entire string, the search space is constrained: there are only `n*(n+1)/2` (i.e., quadratic) number of substrings to consider.
+--
+--    --But, things aren't *quite* that simple, even if this is roughly correct. The mathematical claims above are true, but the use in the context of search is a bit more complicated.
+--
+--    --The current search strategy for context trees is incomplete. I haven't worked out the math on how starting from a fully right-leaning tree and only including one direction of reassociativity restricts the size of the search space for sentence structure. But we know it's incomplete; some VFA case studies have shown us that. So given how expensive it is in practice *while* also being incomplete in a way that affects examples we care about, it's not clear how important those details really are.
+--
+--    --In both cases, search is recursive. Every time the difflist implementation picks a tentative split, it must recursively pick splits for each side, and try to parse that. The number of actually total splits is still quadratically bounded (and ultimately probably memoized by the StrictSubList relation + Lean's tabled resolution) for difflists, exponentially bounded for trees. But (I'm speculating Lean implementation details here) the difflists can in principle be represented with a quadratic number of pairs where each element comes from a linear number of actual allocated cons-lists. The trees don't permit the same degree of structure sharing. Though again, I'm speculating as to what degree Lean might be able to take advantage of that, *if* I've exposed that possibility adequately in my definitions, and even then that's at best a small factor compared to the overall memory overhead.
+--
+--
+-----/
+--
+--
+--
+------ Here I have to port the 'experiments' section from Multiset to DSynth (those are the rules for variables) and try "for any list of value al for any list of value bl the contents of al equals the contents of bl when al is a permutation of bl" or similar
+--
