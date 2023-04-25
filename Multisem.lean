@@ -31,6 +31,7 @@ import Multisem.CaseStudies.VFA.NLSpecs.MultiSetSpec3
 import Multisem.CaseStudies.VFA.NLSpecs.InsertionSortSpec1
 import Multisem.CaseStudies.VFA.NLSpecs.InsertionSortSpec2
 import Multisem.CaseStudies.VFA.NLSpecs.InsertionSortSpec3
+import Multisem.CaseStudies.VFA.NLSpecs.MultiSetSpec4
 --import Multisem.Examples.Misc
 --import Multisem.Examples.TimeIt
 
