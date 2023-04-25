@@ -24,7 +24,13 @@ import Multisem.CaseStudies.VFA.NLSpecs.SortSpec3
 import Multisem.CaseStudies.VFA.NLSpecs.SortSpec4
 import Multisem.CaseStudies.VFA.NLSpecs.SortSpec5
 --import Multisem.CaseStudies.VFA.SearchTree
---import Multisem.CaseStudies.VFA.MultiSet
+import Multisem.CaseStudies.VFA.MultiSet
+import Multisem.CaseStudies.VFA.NLSpecs.MultiSetSpec1
+import Multisem.CaseStudies.VFA.NLSpecs.MultiSetSpec2
+import Multisem.CaseStudies.VFA.NLSpecs.MultiSetSpec3
+import Multisem.CaseStudies.VFA.NLSpecs.InsertionSortSpec1
+import Multisem.CaseStudies.VFA.NLSpecs.InsertionSortSpec2
+import Multisem.CaseStudies.VFA.NLSpecs.InsertionSortSpec3
 --import Multisem.Examples.Misc
 --import Multisem.Examples.TimeIt
 
