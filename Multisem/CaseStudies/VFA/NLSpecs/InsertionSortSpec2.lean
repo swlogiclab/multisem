@@ -14,5 +14,5 @@ local instance insertionsortspec2 : CurrentString [|sort preserves contents|] wh
 def sort_contents_raw := ∀ l, contents l = contents (sort.sort l)
 @[simp]
 def sort_contents_spec := dspec [| sort preserves contents |]
-theorem sort_contents_consistent : sort_contents_raw -> sort_contents_spec :=
-  λ x => x
+theorem sort_contents_consistent : sort_contents_raw = sort_contents_spec :=
+  by simp

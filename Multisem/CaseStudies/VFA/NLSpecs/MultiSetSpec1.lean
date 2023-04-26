@@ -15,7 +15,5 @@ def union_assoc_raw := ∀ (a b c: multiset), union a (union b c) = union (union
 @[simp]
 def union_assoc_spec := dspec [| union is associative |]
 
-theorem union_assoc_consistent : union_assoc_raw -> union_assoc_spec :=
+theorem union_assoc_consistent : union_assoc_raw = union_assoc_spec :=
   by simp
-     intro H
-     apply H

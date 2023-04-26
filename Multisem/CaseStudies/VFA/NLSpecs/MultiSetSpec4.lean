@@ -4,9 +4,10 @@ import Multisem.DiffListEncoding
 import Multisem.Text.ListMacros
 import Multisem.CaseStudies.VFA.Sort
 import Multisem.CaseStudies.VFA.MultiSet
-set_option synthInstance.maxHeartbeats 2000000
-set_option maxHeartbeats 2000000
+set_option synthInstance.maxHeartbeats 8000000
+set_option maxHeartbeats 8000000
 
+-- No original English
 local instance multisetspec4 : CurrentString ("any"::"list"::"of"::"value"::"is"::"empty"::"when"::"its"::"contents"::"are"::"empty"::[]) where
 
 @[simp]
