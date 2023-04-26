@@ -13,7 +13,6 @@ local instance insertionsortspec3 : CurrentString [|sort preserves contents and 
 -- Note: This pretty much translates the intuition behind `is_a_sorting_algorithm'`
 @[simp]
 def insertion_sort_correct_raw := is_a_sorting_algorithm' sort.sort
-#print is_a_sorting_algorithm'
 @[simp]
 def insertion_sort_correct_spec2 := dspec [| sort preserves contents and sorts |]
 theorem insertion_sort_correct_consistent 
