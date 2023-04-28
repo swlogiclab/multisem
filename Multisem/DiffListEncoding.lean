@@ -84,29 +84,29 @@ end CheckNth
   part of what we're trying to do is make table lookups during resolution fast,
   and sticking a possibly-long list of strings in the table will be counterproductive on that measure.
 -/
-class DSynth (P:Type u) (Front Back : Nat) (C : outParam Cat) where
+class DSynth (P:Type u) (Front Back : Nat) (lc rc : outParam Bool) (C : outParam Cat) where
   dsem : interp P C
 attribute [simp] DSynth.dsem
 
 -- TODO: Consider attending to the order of the `lt` goals: currently back first because in the top-level goal this will force unfolding via `lt_sentence_length`
 
-instance DRApp {P}(Front Back1 Back2 : Nat) (A B : Cat)
+instance DRApp {P}(Front Back1 Back2 : Nat)(lc lc' rc') (A B : Cat)
   --[NonEmptyTail Back1 Back2]
   --[NonEmptyTail Front Back1]
   [lt Back1 Back2]
   [lt Front Back1]
-  [L : DSynth P Front Back1 (B // A)]
-  [R : DSynth P Back1 Back2 A]
-  : DSynth P Front Back2 B where
+  [L : DSynth P Front Back1 lc false (B // A)]
+  [R : DSynth P Back1 Back2 lc' rc' A]
+  : DSynth P Front Back2 false false B where
   dsem := L.dsem R.dsem
-instance DLApp {P}(Front Back1 Back2 : Nat) (A B : Cat)
+instance DLApp {P}(Front Back1 Back2 : Nat)(rc lc' rc') (A B : Cat)
   --[NonEmptyTail Back1 Back2]
   --[NonEmptyTail Front Back1]
   [lt Back1 Back2]
   [lt Front Back1]
-  [R : DSynth P Back1 Back2 (A ∖ B)] -- Look for the slash first, bail if it's not
-  [L : DSynth P Front Back1 A]
-  : DSynth P Front Back2 B where
+  [R : DSynth P Back1 Back2 false rc (A ∖ B)] -- Look for the slash first, bail if it's not
+  [L : DSynth P Front Back1 lc' rc' A]
+  : DSynth P Front Back2 false false B where
   dsem := R.dsem L.dsem
 
 /--
@@ -117,24 +117,25 @@ instance (priority := default + 100) DLex {P s}(L : Nat)(w:String)(C:Cat)
   [_cur:CurrentString s]
   [_nth:Nth s L w]
   [l : lexicon P w C]
-  : DSynth P L (Nat.succ L) C where
+  : DSynth P L (Nat.succ L) false false C where
   dsem := l.denotation
 
 -- No Reassoc or Reassoc' is necessary!
 
-instance DShift {P}(Front Back : Nat)(l c r)[lt Front Back][L:DSynth P Front Back (l ∖ (c // r))] : DSynth P Front Back ((l ∖ c) // r) where
+instance DShift {P}(Front Back : Nat)(l c r)(lc rc)[lt Front Back][L:DSynth P Front Back lc rc (l ∖ (c // r))] : DSynth P Front Back false false ((l ∖ c) // r) where
   dsem xr xl := L.dsem xl xr
 
 -- Search right first, try to bias parsing to right-to-left for English
-instance DRComp (P:Type u)(s smid s' c1 c2 c3)[lt smid s'][lt s smid][R:DSynth P smid s' (c2 // c3)][L:DSynth P s smid (c1 // c2)] : DSynth P s s' (c1 // c3) where
+-- TODO: these rules should also reject compositions as their primary functors
+instance DRComp (P:Type u)(s smid s' c1 c2 c3)(lc rc lc')[lt smid s'][lt s smid][R:DSynth P smid s' lc rc (c2 // c3)][L:DSynth P s smid lc' false (c1 // c2)] : DSynth P s s' false true (c1 // c3) where
   dsem x := L.dsem (R.dsem x)
-instance DLComp (P:Type u)(s smid s' c1 c2 c3)[lt smid s'][lt s smid][R:DSynth P smid s' (c2 ∖ c3)][L:DSynth P s smid (c1 ∖ c2)] : DSynth P s s' (c1 ∖ c3) where
+instance DLComp (P:Type u)(s smid s' c1 c2 c3)(lc rc rc')[lt smid s'][lt s smid][R:DSynth P smid s' false rc' (c2 ∖ c3)][L:DSynth P s smid lc rc (c1 ∖ c2)] : DSynth P s s' true false (c1 ∖ c3) where
   dsem x := R.dsem (L.dsem x)
 
 -- English-specific lifting rules
 -- Montague-style lifting for GQs in object position
-instance DMLift (H:Type u){T U:Type u}(s s')[sem:DSynth H s s' (((@NP T) ∖ S) // (@NP U))] :
-  DSynth H s s' (((@NP T) ∖ S) // (S // ((@NP U) ∖ S))) where 
+instance DMLift (H:Type u){T U:Type u}(s s')(lc rc)[sem:DSynth H s s' lc rc (((@NP T) ∖ S) // (@NP U))] :
+  DSynth H s s' false false (((@NP T) ∖ S) // (S // ((@NP U) ∖ S))) where 
   dsem := fun P x => P (fun y => sem.dsem y x)
 
 
@@ -184,48 +185,48 @@ namespace DiffJacobson
      These rules are much less general than the arbitrary lifting, because they won't automatically play well with other combinators --- we may end up needing quite a few more of these. Each seems to slow down search a little bit, so we will keep these in their own module: these will be scoped instances. We'll keep the original rules around as local instances (which will never be considered in real searches) so we can prove conservativity
   -/
   /-- A condensation of `GR` and `SynthRApp` -/
-  scoped instance DAppGR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
+  scoped instance DAppGR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}{lc lc' rc'}
     [lt X mid]
     [lt mid Y]
-    [arg:DSynth P mid Y (B % (@NP C))]
-    [f:DSynth P X mid (A // B)]
-    : DSynth P X Y (A % (@NP C)) where
+    [arg:DSynth P mid Y lc' rc' (B % (@NP C))]
+    [f:DSynth P X mid lc false (A // B)]
+    : DSynth P X Y false false (A % (@NP C)) where
     dsem := fun c => f.dsem (arg.dsem c)
   /-- A condensation of `GL` and `SynthLApp` -/
-  scoped instance DAppGL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
+  scoped instance DAppGL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}{lc rc rc'}
     [lt mid Y]
     [lt X mid]
-    [arg:DSynth P X mid (B % (@NP C))]
-    [f:DSynth P mid Y (B ∖ A)]
-    : DSynth P X Y (A % (@NP C)) where
+    [arg:DSynth P X mid lc rc (B % (@NP C))]
+    [f:DSynth P mid Y false rc' (B ∖ A)]
+    : DSynth P X Y false false (A % (@NP C)) where
     dsem := fun c => f.dsem (arg.dsem c)
-  scoped instance DAppZRR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
+  scoped instance DAppZRR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}{lc lc' rc'}
     [lt mid Y]
     [lt X mid]
-    [arg:DSynth P mid Y (C % (@NP B))]
-    [f:DSynth P X mid ((A // (@NP B)) // C)]
-    : DSynth P X Y (A // (@NP B)) where
+    [arg:DSynth P mid Y lc' rc' (C % (@NP B))]
+    [f:DSynth P X mid lc false ((A // (@NP B)) // C)]
+    : DSynth P X Y false false (A // (@NP B)) where
     dsem := fun n => f.dsem (arg.dsem n) n
-  scoped instance DAppZLR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
+  scoped instance DAppZLR {P:Type u}[HeytingAlgebra P]{X mid Y A B C}{lc lc' rc'}
     [lt mid Y]
     [lt X mid]
-    [arg:DSynth P mid Y (C % (@NP B))]
-    [f:DSynth P X mid (((@NP B) ∖ A) // C)]
-    : DSynth P X Y ((@NP B) ∖ A) where
+    [arg:DSynth P mid Y lc' rc' (C % (@NP B))]
+    [f:DSynth P X mid lc false (((@NP B) ∖ A) // C)]
+    : DSynth P X Y false false ((@NP B) ∖ A) where
     dsem := fun n => f.dsem (arg.dsem n) n
-  scoped instance DAppZRL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
+  scoped instance DAppZRL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}{lc rc rc'}
     [lt mid Y]
     [lt X mid]
-    [arg:DSynth P X mid (C % (@NP B))]
-    [f:DSynth P mid Y (C ∖ (A // (@NP B)))]
-    : DSynth P X Y (A // (@NP B)) where
+    [arg:DSynth P X mid lc rc (C % (@NP B))]
+    [f:DSynth P mid Y false rc' (C ∖ (A // (@NP B)))]
+    : DSynth P X Y false false (A // (@NP B)) where
     dsem := fun n => f.dsem (arg.dsem n) n
-  scoped instance DAppZLL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}
+  scoped instance DAppZLL {P:Type u}[HeytingAlgebra P]{X mid Y A B C}{lc rc rc'}
     [lt mid Y]
     [lt X mid]
-    [arg:DSynth P X mid (C % (@NP B))]
-    [f:DSynth P mid Y (C ∖ ((@NP B) ∖ A))]
-    : DSynth P X Y (A // (@NP B)) where
+    [arg:DSynth P X mid lc rc (C % (@NP B))]
+    [f:DSynth P mid Y false rc' (C ∖ ((@NP B) ∖ A))]
+    : DSynth P X Y false false (A // (@NP B)) where
     dsem := fun n => f.dsem (arg.dsem n) n
 
   -- For now we'll keep the word 'the' under wraps as well
@@ -242,13 +243,13 @@ end DiffJacobson
 
 @[simp]
 --def dspec (L : List String) [D: DSynth Prop L [] S] : Prop := D.dsem
-def dspec (L : List String) [_cur:CurrentString L] [D:DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) S] : Prop := D.dsem
+def dspec (L : List String) [_cur:CurrentString L] {lc rc}[D:DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) lc rc S] : Prop := D.dsem
 @[simp]
-def dspec' (L : List String) (n:Nat) [_cur:CurrentString L] [D:DSynth Prop 0 n S] : Prop := D.dsem
+def dspec' (L : List String) (n:Nat) [_cur:CurrentString L] {lc rc}[D:DSynth Prop 0 n lc rc S] : Prop := D.dsem
 @[simp]
-def dbgdspec (L : List String) (n:Nat) [_cur:CurrentString L] [D:DSynth Prop 0 n S] : DSynth Prop 0 n S := D
+def dbgdspec (L : List String) (n:Nat) [_cur:CurrentString L] {lc rc}[D:DSynth Prop 0 n lc rc S] : DSynth Prop 0 n lc rc S := D
 @[simp]
-def dbgdspec' (L : List String) [_cur:CurrentString L] [D:DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) S] : DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) S := D
+def dbgdspec' (L : List String) [_cur:CurrentString L] {lc rc}[D:DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) lc rc S] : DSynth Prop 0 ((@List.rec String (fun _ => Nat) 0 (fun _head _tail res => Nat.succ res)) L) lc rc S := D
 
 #check @List.brecOn
 #check @List.below
@@ -267,11 +268,11 @@ namespace three_is_even
   local instance c : CurrentString ("three"::"is"::"even"::[]) where
 
 -- Let's confirm the proof theory is complete enough to find this
-def three_is_even_parse : DSynth Prop 0 3 S :=
-  let three : DSynth Prop 0 1 (@NP Nat):= DLex 0 "three" (@NP Nat) --(l:=threelex)
-  let is : DSynth Prop 1 2 (((@NP Nat) ∖ S) // (@ADJ Nat)) := DLex 1 "is" _ --(l:=noun_is_adj_lex)
-  let even : DSynth Prop 2 3 (@ADJ Nat) := DLex 2 "even" _ --(l:=evenlex)
-  let is_even : DSynth Prop 1 3 ((@NP Nat) ∖ S) := DRApp (L:=is) (R:=even)
+def three_is_even_parse : DSynth Prop 0 3 false false S :=
+  let three : DSynth Prop 0 1 false false (@NP Nat):= DLex 0 "three" (@NP Nat) --(l:=threelex)
+  let is : DSynth Prop 1 2 false false (((@NP Nat) ∖ S) // (@ADJ Nat)) := DLex 1 "is" _ --(l:=noun_is_adj_lex)
+  let even : DSynth Prop 2 3 false false (@ADJ Nat) := DLex 2 "even" _ --(l:=evenlex)
+  let is_even : DSynth Prop 1 3 false false ((@NP Nat) ∖ S) := DRApp (L:=is) (R:=even)
   DLApp (L:=three) (R:=is_even)
 #check three_is_even_parse.dsem
 
