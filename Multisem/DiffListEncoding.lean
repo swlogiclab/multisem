@@ -6,6 +6,15 @@ import Multisem.Lexicon
 --open sort
 
 open Cat
+/-
+ - The official Lean 4 release added checks on instances
+ - to ensure resolution will terminate, which basically
+ - require all instances to propagate information from
+ - "input" params to "output" params. These instances
+ - do not do that, so we turn off checking of this
+ - property.
+-/
+set_option synthInstance.checkSynthOrder false
 
 /--
   Length already exists in the standard library, but we want a version
